@@ -1,0 +1,24 @@
+# =============================================================================
+# requirements.txt -- SDN Agent (LLM + HITL + Dashboard)
+# Universidad Catolica de Colombia -- Proyecto de Grado 2026
+#
+# Instalacion:
+#   python3 -m venv venv
+#   source venv/bin/activate
+#   pip install -r requirements.txt
+# =============================================================================
+
+# -- Servidor web -------------------------------------------------------------
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+pydantic==2.7.1
+
+# -- Variables de entorno -----------------------------------------------------
+python-dotenv==1.0.1
+
+# -- Nota: dependencias incluidas en Python stdlib (sin instalar nada extra) --
+# sqlite3    -> base de datos persistente
+# urllib     -> HTTP cliente para OpenAI, Ryu REST y Telegram
+# json       -> serializacion de payloads
+# threading  -> polling de Telegram en background
+# asyncio    -> event loop de FastAPI
