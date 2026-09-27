@@ -9,12 +9,12 @@
 # =============================================================================
 
 # -- Servidor web -------------------------------------------------------------
-fastapi==0.111.0
-uvicorn[standard]==0.29.0
-pydantic==2.7.1
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.7.1
 
 # -- Variables de entorno -----------------------------------------------------
-python-dotenv==1.0.1
+python-dotenv>=1.0.1
 
 # -- Nota: dependencias incluidas en Python stdlib (sin instalar nada extra) --
 # sqlite3    -> base de datos persistente
