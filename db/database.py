@@ -10,7 +10,7 @@ import logging
 from contextlib import contextmanager
 
 from config import DB_FILE
-from db.models import SCHEMA
+from db.models import SCHEMA, COLUMNAS_NUEVAS
 
 logger = logging.getLogger('AgenteSDN.db')
 
@@ -19,7 +19,18 @@ def init_db() -> None:
     """Crea las tablas si no existen. Llamar una sola vez al arrancar."""
     with get_connection() as conn:
         conn.executescript(SCHEMA)
+        _migrar_columnas(conn)
     logger.info(f'[DB] Base de datos inicializada: {DB_FILE}')
+
+
+def _migrar_columnas(conn: sqlite3.Connection) -> None:
+    """Agrega a las tablas existentes las columnas de COLUMNAS_NUEVAS que falten."""
+    for tabla, columnas in COLUMNAS_NUEVAS.items():
+        existentes = {r['name'] for r in conn.execute(f'PRAGMA table_info({tabla})')}
+        for nombre, tipo in columnas.items():
+            if nombre not in existentes:
+                conn.execute(f'ALTER TABLE {tabla} ADD COLUMN {nombre} {tipo}')
+                logger.info(f'[DB] Migracion: columna {tabla}.{nombre} agregada')
 
 
 @contextmanager

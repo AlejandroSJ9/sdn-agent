@@ -1,0 +1,893 @@
+{
+  "version": 1,
+  "descripcion": "Escenarios de prueba del agente SDN basados en comportamientos documentados por CISA/FBI, MITRE ATT&CK, Microsoft, Tenable y NIST. Cada alerta se construye igual que Ryu-IA (_send_json_alert): solo existe si 3 o mas metricas se dispararon, los valores de las metricas disparadas superan su umbral y los de las no disparadas no lo alcanzan.",
+  "reglas": {
+    "fuente_detector": "https://github.com/sbriceno1379/Ryu-IA/blob/main/ryu_controller.py",
+    "umbrales": {
+      "M1": "> 20",
+      "M2": "> 15",
+      "M3": "SMB 445 < 5 s y > 512000 B",
+      "M4": "> 200",
+      "M5": ">= 5"
+    },
+    "metricas_minimas_para_alerta": 3,
+    "conjuntos": "Los casos 'validacion' no se usan para ajustar el prompt: solo se miran sus resultados agregados al final, para estimar si el agente generaliza.",
+    "decidibilidad": "Cada etiqueta debe poder deducirse de lo que el agente recibe: la alerta, el contexto de la DB (bloqueos, hosts en riesgo, nivel de red) y los datos que puede pedir (historial_host incluye en_whitelist). Los pares de casos con las mismas metricas y distinto contexto comprueban que el agente usa el contexto y no memoriza numeros.",
+    "contexto": "Los incidentes previos con veredicto falso_positivo se siembran solo en el historial: se asume que el operador aprobo el desbloqueo. Los demas tambien quedan en hosts_bloqueados."
+  },
+  "casos": [
+    {
+      "id": "AT-01",
+      "conjunto": "desarrollo",
+      "clase": "ataque",
+      "nombre": "Conti: despliegue con PsExec por SMB",
+      "escenario": "Un equipo comprometido copia el binario del ransomware a ADMIN$ de otros equipos de usuario y lo ejecuta como servicio remoto.",
+      "por_que_estas_metricas": "La copia del binario por SMB es breve y voluminosa (M3); las conexiones a 445/135 de otros equipos de usuario disparan M5 y las conexiones nuevas a puertos criticos disparan M1.",
+      "fuentes": [
+        {
+          "organizacion": "CISA, FBI, NSA, USSS",
+          "documento": "AA21-265A Conti Ransomware",
+          "url": "https://www.cisa.gov/sites/default/files/publications/AA21-265A-Conti_Ransomware_TLP_WHITE.pdf",
+          "dato": "Conti puede propagarse por SMB y cifrar archivos en distintos hosts (T1021.002); los actores usan herramientas como Windows Sysinternals y Mimikatz para obtener credenciales y moverse lateralmente."
+        },
+        {
+          "organizacion": "MITRE ATT&CK",
+          "documento": "T1021.002 SMB/Windows Admin Shares",
+          "url": "https://attack.mitre.org/techniques/T1021/002/",
+          "dato": "Conti se propaga por SMB y cifra archivos en distintos hosts; Ryuk uso el recurso C$ para moverse lateralmente."
+        }
+      ],
+      "contexto": {},
+      "alerta": {
+        "host": "10.0.10.3",
+        "M1": 24,
+        "M2": 9,
+        "M3": true,
+        "M4": 60,
+        "M5_count": 8
+      },
+      "esperado": {
+        "veredicto": "confirmado",
+        "aceptables": [
+          "confirmado"
+        ],
+        "niveles": [
+          1,
+          2
+        ],
+        "confianza_minima": 80
+      },
+      "justificacion": "Copia rapida a recursos administrativos mas conexiones directas entre equipos de usuario, sin whitelist ni historial que lo explique."
+    },
+    {
+      "id": "AT-02",
+      "conjunto": "desarrollo",
+      "clase": "ataque",
+      "nombre": "LockBit 3.0: propagacion con PsExec y SMB",
+      "escenario": "El afiliado usa PsExec sobre SMB para empujar el ransomware a muchos equipos del mismo segmento.",
+      "por_que_estas_metricas": "Empujar el binario a 12 equipos genera M3, M5 con 12 pares y suficientes conexiones nuevas y destinos para M1 y M2.",
+      "fuentes": [
+        {
+          "organizacion": "CISA, FBI, MS-ISAC",
+          "documento": "AA23-075A #StopRansomware: LockBit 3.0",
+          "url": "https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-075a",
+          "dato": "LockBit 3.0 puede propagarse mediante Group Policy Objects y PsExec usando el protocolo SMB."
+        }
+      ],
+      "contexto": {},
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 38,
+        "M2": 17,
+        "M3": true,
+        "M4": 140,
+        "M5_count": 12
+      },
+      "esperado": {
+        "veredicto": "confirmado",
+        "aceptables": [
+          "confirmado"
+        ],
+        "niveles": [
+          1,
+          2
+        ],
+        "confianza_minima": 85
+      },
+      "justificacion": "Cuatro metricas, dos de ellas de alta especificidad, sin contexto que lo explique."
+    },
+    {
+      "id": "AT-03",
+      "conjunto": "desarrollo",
+      "clase": "ataque",
+      "nombre": "Black Basta: escaneo con netscan y movimiento lateral",
+      "escenario": "El atacante escanea la subred con SoftPerfect netscan y luego entra por PsExec y RDP a varios equipos. La copia de PSEXESVC es pequena y no dispara M3.",
+      "por_que_estas_metricas": "El escaneo de puertos criticos dispara M1 y M2; las conexiones directas a 445/3389 de otros equipos de usuario disparan M5.",
+      "fuentes": [
+        {
+          "organizacion": "CISA, FBI, HHS, MS-ISAC",
+          "documento": "AA24-131A #StopRansomware: Black Basta",
+          "url": "https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-131a",
+          "dato": "Los afiliados usan SoftPerfect network scanner (netscan.exe) para escanear la red, y BITSAdmin, PsExec y RDP para el movimiento lateral."
+        }
+      ],
+      "contexto": {},
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 46,
+        "M2": 31,
+        "M3": false,
+        "M4": 180,
+        "M5_count": 6
+      },
+      "esperado": {
+        "veredicto": "confirmado",
+        "aceptables": [
+          "confirmado",
+          "indeterminado"
+        ],
+        "niveles": [
+          1,
+          2
+        ],
+        "confianza_minima": 70
+      },
+      "justificacion": "Escaneo amplio de puertos de administracion seguido de conexiones directas entre usuarios, desde un equipo sin whitelist. Sin copia sospechosa, 'indeterminado' es defendible: mantiene el bloqueo y pide revision."
+    },
+    {
+      "id": "AT-04",
+      "conjunto": "desarrollo",
+      "clase": "ataque",
+      "nombre": "WannaCry: gusano por SMBv1 (EternalBlue)",
+      "escenario": "El gusano escanea el puerto 445 de toda la subred y explota SMBv1 en los equipos vulnerables.",
+      "por_que_estas_metricas": "El escaneo masivo a 445 dispara M1 y M2; cada conexion nueva sube al controlador (M4); las conexiones a otros equipos de usuario disparan M5. El exploit no copia un binario grande, asi que M3 no se dispara.",
+      "fuentes": [
+        {
+          "organizacion": "CISA (US-CERT)",
+          "documento": "TA17-132A Indicators Associated With WannaCry Ransomware",
+          "url": "https://www.cisa.gov/ncas/alerts/TA17-132A",
+          "dato": "WannaCry usa la vulnerabilidad MS17-010 para propagarse por la red mediante SMBv1."
+        }
+      ],
+      "contexto": {},
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 64,
+        "M2": 48,
+        "M3": false,
+        "M4": 520,
+        "M5_count": 17
+      },
+      "esperado": {
+        "veredicto": "confirmado",
+        "aceptables": [
+          "confirmado"
+        ],
+        "niveles": [
+          1,
+          2
+        ],
+        "confianza_minima": 85
+      },
+      "justificacion": "Cuatro metricas muy por encima de su umbral, con conexiones directas a 17 pares, desde un equipo sin whitelist."
+    },
+    {
+      "id": "AT-05",
+      "conjunto": "validacion",
+      "clase": "ataque",
+      "nombre": "NotPetya: PsExec y WMIC con credenciales robadas",
+      "escenario": "Con credenciales robadas por Mimikatz, el malware se copia a otros equipos y se ejecuta con PsExec y WMIC.",
+      "por_que_estas_metricas": "La copia del binario dispara M3; las conexiones a 445 y 135 de otros equipos de usuario disparan M5; M1 sube por las conexiones nuevas.",
+      "fuentes": [
+        {
+          "organizacion": "CISA",
+          "documento": "Petya Ransomware (alerta del 1 de julio de 2017)",
+          "url": "https://www.cisa.gov/news-events/alerts/2017/07/01/petya-ransomware",
+          "dato": "NotPetya combina credenciales obtenidas con una version modificada de Mimikatz con WMIC o psexec.exe para acceder a otros sistemas."
+        },
+        {
+          "organizacion": "MITRE ATT&CK",
+          "documento": "T1047 Windows Management Instrumentation",
+          "url": "https://attack.mitre.org/techniques/T1047/",
+          "dato": "NotPetya puede usar wmic para propagarse por la red; WMI remoto por DCOM usa el puerto 135."
+        }
+      ],
+      "contexto": {},
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 33,
+        "M2": 14,
+        "M3": true,
+        "M4": 150,
+        "M5_count": 11
+      },
+      "esperado": {
+        "veredicto": "confirmado",
+        "aceptables": [
+          "confirmado"
+        ],
+        "niveles": [
+          1,
+          2
+        ],
+        "confianza_minima": 85
+      },
+      "justificacion": "Copia rapida mas once conexiones directas entre usuarios, sin whitelist."
+    },
+    {
+      "id": "AT-06",
+      "conjunto": "validacion",
+      "clase": "ataque",
+      "nombre": "Ejecucion remota por WMI sin copia de archivos",
+      "escenario": "El atacante ejecuta comandos en otros equipos con wmic process call create (puerto 135), sin copiar binarios grandes.",
+      "por_que_estas_metricas": "Las conexiones a 135 de otros equipos de usuario disparan M5; DCOM abre puertos dinamicos y genera muchos Packet-In (M4); M1 cuenta las conexiones nuevas a 135.",
+      "fuentes": [
+        {
+          "organizacion": "MITRE ATT&CK",
+          "documento": "T1047 Windows Management Instrumentation",
+          "url": "https://attack.mitre.org/techniques/T1047/",
+          "dato": "WMI remoto por DCOM usa el puerto 135; WMI sobre WinRM usa 5985 (HTTP) o 5986 (HTTPS)."
+        }
+      ],
+      "contexto": {},
+      "alerta": {
+        "host": "10.0.10.1",
+        "M1": 23,
+        "M2": 8,
+        "M3": false,
+        "M4": 240,
+        "M5_count": 7
+      },
+      "esperado": {
+        "veredicto": "confirmado",
+        "aceptables": [
+          "confirmado",
+          "indeterminado"
+        ],
+        "niveles": [
+          1,
+          2
+        ],
+        "confianza_minima": 70
+      },
+      "justificacion": "Mismas metricas que LG-03 (soporte tecnico con PsExec) pero el equipo NO esta en la whitelist y no tiene historial. Sin esa explicacion, siete conexiones directas entre usuarios son sospechosas."
+    },
+    {
+      "id": "AT-07",
+      "conjunto": "validacion",
+      "clase": "ataque",
+      "nombre": "Movimiento lateral por RDP tras escaneo",
+      "escenario": "El atacante escanea los puertos de administracion de la subred y abre sesiones RDP a cinco equipos de usuario.",
+      "por_que_estas_metricas": "El escaneo dispara M1 y M2 apenas sobre el umbral; las conexiones a 3389 de otros equipos de usuario llegan justo al umbral de M5.",
+      "fuentes": [
+        {
+          "organizacion": "CISA, FBI, HHS, MS-ISAC",
+          "documento": "AA24-131A #StopRansomware: Black Basta",
+          "url": "https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-131a",
+          "dato": "Los afiliados usan RDP para el movimiento lateral."
+        },
+        {
+          "organizacion": "CISA, FBI, NSA, USSS",
+          "documento": "AA21-265A Conti Ransomware",
+          "url": "https://www.cisa.gov/sites/default/files/publications/AA21-265A-Conti_Ransomware_TLP_WHITE.pdf",
+          "dato": "Se ha observado a actores de Conti obtener acceso no autorizado a redes de victimas mediante credenciales RDP robadas."
+        }
+      ],
+      "contexto": {},
+      "alerta": {
+        "host": "10.0.10.1",
+        "M1": 21,
+        "M2": 16,
+        "M3": false,
+        "M4": 80,
+        "M5_count": 5
+      },
+      "esperado": {
+        "veredicto": "confirmado",
+        "aceptables": [
+          "confirmado",
+          "indeterminado"
+        ],
+        "niveles": [
+          1,
+          2
+        ],
+        "confianza_minima": 60
+      },
+      "justificacion": "Todas las senales estan justo en el umbral: un analista puede confirmar o pedir revision. Lo que no es aceptable es liberar el equipo."
+    },
+    {
+      "id": "AT-08",
+      "conjunto": "desarrollo",
+      "clase": "ataque",
+      "nombre": "Equipo de administracion comprometido (VLAN ADM)",
+      "escenario": "Un equipo de la red de administracion, con credenciales privilegiadas, copia y ejecuta el ransomware en otros equipos de su red.",
+      "por_que_estas_metricas": "Igual que un despliegue con PsExec: M3, M5 y M1.",
+      "fuentes": [
+        {
+          "organizacion": "CISA, FBI, MS-ISAC",
+          "documento": "AA23-075A #StopRansomware: LockBit 3.0",
+          "url": "https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-075a",
+          "dato": "LockBit 3.0 se propaga con PsExec sobre SMB y mediante Group Policy Objects, que requieren privilegios de administracion."
+        }
+      ],
+      "contexto": {},
+      "alerta": {
+        "host": "10.0.20.3",
+        "M1": 29,
+        "M2": 12,
+        "M3": true,
+        "M4": 90,
+        "M5_count": 9
+      },
+      "esperado": {
+        "veredicto": "confirmado",
+        "aceptables": [
+          "confirmado"
+        ],
+        "niveles": [
+          3
+        ],
+        "confianza_minima": 85
+      },
+      "justificacion": "Ataque claro en la red de administracion: el prompt exige nivel 3 (solo avisar, sin acciones automaticas)."
+    },
+    {
+      "id": "AT-09",
+      "conjunto": "desarrollo",
+      "clase": "ataque",
+      "nombre": "Propagacion: segundo equipo de la cadena",
+      "escenario": "Hace 8 minutos se confirmo ransomware en 10.0.10.3, que se conecto a 10.0.10.4. Ahora 10.0.10.4 muestra conexiones directas a otros equipos, aunque todas las senales estan apenas sobre el umbral.",
+      "por_que_estas_metricas": "El equipo recien infectado empieza a moverse: M5 en el umbral, M1 y M4 apenas por encima.",
+      "fuentes": [
+        {
+          "organizacion": "CISA",
+          "documento": "Petya Ransomware (alerta del 1 de julio de 2017)",
+          "url": "https://www.cisa.gov/news-events/alerts/2017/07/01/petya-ransomware",
+          "dato": "La combinacion de credenciales robadas con WMIC o PsExec permitio una propagacion rapida por la red sin interaccion del usuario."
+        },
+        {
+          "organizacion": "NIST",
+          "documento": "SP 800-61 Rev. 2, seccion 3.2.4 (Perform Event Correlation)",
+          "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf",
+          "dato": "La evidencia de un incidente puede estar repartida en varias fuentes; correlacionar eventos es clave para validarlo."
+        }
+      ],
+      "contexto": {
+        "incidentes_previos": [
+          {
+            "host": "10.0.10.3",
+            "minutos_antes": 8,
+            "veredicto": "confirmado",
+            "confianza": 92,
+            "metricas": [
+              "M1",
+              "M3",
+              "M5"
+            ]
+          }
+        ],
+        "hosts_riesgo": [
+          {
+            "ip": "10.0.10.4",
+            "origen": "10.0.10.3",
+            "minutos_antes": 8
+          }
+        ],
+        "nivel_alerta": "ALTO"
+      },
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 21,
+        "M2": 6,
+        "M3": false,
+        "M4": 230,
+        "M5_count": 5
+      },
+      "esperado": {
+        "veredicto": "confirmado",
+        "aceptables": [
+          "confirmado"
+        ],
+        "niveles": [
+          1,
+          2
+        ],
+        "confianza_minima": 70
+      },
+      "justificacion": "Por si sola la alerta seria dudosa, pero el equipo fue senalado en riesgo por un ataque confirmado hace 8 minutos. Tratarlo como 'indeterminado' ignora la correlacion que pide NIST."
+    },
+    {
+      "id": "AT-10",
+      "conjunto": "desarrollo",
+      "clase": "ataque",
+      "nombre": "Propagacion masiva: quinto equipo en 30 minutos",
+      "escenario": "Cuatro equipos ya fueron confirmados en los ultimos 30 minutos y un quinto empieza a copiar el ransomware.",
+      "por_que_estas_metricas": "Mismo patron de despliegue: M3, M5 y M1.",
+      "fuentes": [
+        {
+          "organizacion": "CISA, FBI, MS-ISAC",
+          "documento": "AA23-075A #StopRansomware: LockBit 3.0",
+          "url": "https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-075a",
+          "dato": "LockBit 3.0 se propaga con PsExec sobre SMB."
+        }
+      ],
+      "contexto": {
+        "incidentes_previos": [
+          {
+            "host": "10.0.10.1",
+            "minutos_antes": 26,
+            "veredicto": "confirmado",
+            "confianza": 93,
+            "metricas": [
+              "M1",
+              "M3",
+              "M5"
+            ]
+          },
+          {
+            "host": "10.0.10.2",
+            "minutos_antes": 19,
+            "veredicto": "confirmado",
+            "confianza": 91,
+            "metricas": [
+              "M1",
+              "M3",
+              "M5"
+            ]
+          },
+          {
+            "host": "10.0.10.3",
+            "minutos_antes": 12,
+            "veredicto": "confirmado",
+            "confianza": 94,
+            "metricas": [
+              "M1",
+              "M2",
+              "M3",
+              "M5"
+            ]
+          },
+          {
+            "host": "10.0.10.4",
+            "minutos_antes": 5,
+            "veredicto": "confirmado",
+            "confianza": 92,
+            "metricas": [
+              "M1",
+              "M3",
+              "M5"
+            ]
+          }
+        ],
+        "nivel_alerta": "CRITICO"
+      },
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 27,
+        "M2": 9,
+        "M3": true,
+        "M4": 110,
+        "M5_count": 7
+      },
+      "esperado": {
+        "veredicto": "confirmado",
+        "aceptables": [
+          "confirmado"
+        ],
+        "niveles": [
+          3
+        ],
+        "confianza_minima": 90
+      },
+      "justificacion": "Con cinco equipos afectados, el prompt exige nivel 3."
+    },
+    {
+      "id": "LG-01",
+      "conjunto": "desarrollo",
+      "clase": "legitimo",
+      "nombre": "SCCM: instalacion del cliente por client push",
+      "escenario": "El servidor de Configuration Manager instala su cliente en los equipos: copia ccmsetup.exe a ADMIN$ por SMB y lo arranca por WMI/RPC.",
+      "por_que_estas_metricas": "En la red es identico a un despliegue con PsExec: copia rapida por SMB (M3), conexiones a 445/135 de otros equipos (M5) y muchas conexiones nuevas (M1, M2).",
+      "fuentes": [
+        {
+          "organizacion": "Microsoft",
+          "documento": "Windows Firewall and port settings for clients in Configuration Manager",
+          "url": "https://learn.microsoft.com/en-us/mem/configmgr/core/clients/deploy/windows-firewall-and-port-settings-for-clients",
+          "dato": "El client push usa SMB (TCP 445) y el mapeador de RPC (TCP 135) entre el servidor de sitio y el cliente."
+        },
+        {
+          "organizacion": "Microsoft",
+          "documento": "Troubleshooting SCCM part I: client push installation",
+          "url": "https://learn.microsoft.com/en-us/archive/blogs/sudheesn/troubleshooting-sccm-part-i-client-push-installation",
+          "dato": "El equipo debe tener el recurso ADMIN$; los archivos del cliente se copian a ADMIN$\\system32\\ccmsetup."
+        }
+      ],
+      "contexto": {
+        "whitelist": [
+          {
+            "ip": "10.0.20.2",
+            "razon": "Servidor de sitio de Configuration Manager (SCCM); hace client push a los equipos de la red ADM"
+          }
+        ]
+      },
+      "alerta": {
+        "host": "10.0.20.2",
+        "M1": 25,
+        "M2": 16,
+        "M3": true,
+        "M4": 120,
+        "M5_count": 8
+      },
+      "esperado": {
+        "veredicto": "falso_positivo",
+        "aceptables": [
+          "falso_positivo",
+          "indeterminado"
+        ],
+        "niveles": [
+          2
+        ],
+        "confianza_minima": 55
+      },
+      "justificacion": "Las metricas son de ataque, pero el equipo esta en la whitelist como servidor SCCM, y Microsoft documenta exactamente este trafico. Para saberlo, el agente debe pedir historial_host (que incluye en_whitelist). 'indeterminado' es aceptable: mantiene el bloqueo pero pide revision."
+    },
+    {
+      "id": "LG-02",
+      "conjunto": "desarrollo",
+      "clase": "legitimo",
+      "nombre": "Escaneo autenticado de vulnerabilidades (Nessus)",
+      "escenario": "El escaner de vulnerabilidades hace su escaneo autenticado semanal: entra a cada equipo por SMB y WMI con una cuenta de administrador local.",
+      "por_que_estas_metricas": "Contactar a decenas de equipos en 139/445/135 dispara M1, M2 y M5 muy por encima del umbral, y M4 por el volumen de conexiones nuevas. No copia binarios grandes.",
+      "fuentes": [
+        {
+          "organizacion": "Tenable",
+          "documento": "Credentialed Checks on Windows (Nessus 10.x)",
+          "url": "https://docs.tenable.com/nessus/10_12/Content/CredentialedChecksOnWindows.htm",
+          "dato": "El escaneo usa SMB y WMI; requiere TCP 139 y 445, y 135 mas el rango dinamico para WMI, con los recursos IPC$, ADMIN$ y C$ habilitados."
+        },
+        {
+          "organizacion": "MITRE ATT&CK",
+          "documento": "T1046 Network Service Discovery",
+          "url": "https://attack.mitre.org/techniques/T1046/",
+          "dato": "La deteccion se basa en conexiones rapidas a muchos servicios o hosts, el mismo patron que produce un escaneo autorizado."
+        }
+      ],
+      "contexto": {
+        "whitelist": [
+          {
+            "ip": "10.0.20.4",
+            "razon": "Escaner de vulnerabilidades Tenable Nessus; escaneo autenticado semanal"
+          }
+        ]
+      },
+      "alerta": {
+        "host": "10.0.20.4",
+        "M1": 88,
+        "M2": 52,
+        "M3": false,
+        "M4": 640,
+        "M5_count": 34
+      },
+      "esperado": {
+        "veredicto": "falso_positivo",
+        "aceptables": [
+          "falso_positivo",
+          "indeterminado"
+        ],
+        "niveles": [
+          2
+        ],
+        "confianza_minima": 55
+      },
+      "justificacion": "Par de AM-01: mismas metricas, pero este equipo esta en la whitelist como escaner. Sin consultarla, el agente no puede distinguirlos."
+    },
+    {
+      "id": "LG-03",
+      "conjunto": "validacion",
+      "clase": "legitimo",
+      "nombre": "Soporte tecnico con PsExec",
+      "escenario": "Un tecnico de soporte ejecuta ipconfig /all y otros diagnosticos en siete equipos con PsExec.",
+      "por_que_estas_metricas": "PsExec abre conexiones SMB a 445 de cada equipo (M5), con muchas conexiones nuevas (M1) y Packet-In (M4). PSEXESVC es pequeno y no dispara M3.",
+      "fuentes": [
+        {
+          "organizacion": "Microsoft Sysinternals",
+          "documento": "PsExec",
+          "url": "https://learn.microsoft.com/en-us/sysinternals/downloads/psexec",
+          "dato": "PsExec es una herramienta de administracion para ejecutar procesos en otros sistemas, por ejemplo ipconfig en un equipo remoto. Algunos antivirus la detectan porque tambien la usan virus."
+        }
+      ],
+      "contexto": {
+        "whitelist": [
+          {
+            "ip": "10.0.20.5",
+            "razon": "Estacion de la mesa de ayuda; uso autorizado de PsTools"
+          }
+        ]
+      },
+      "alerta": {
+        "host": "10.0.20.5",
+        "M1": 22,
+        "M2": 7,
+        "M3": false,
+        "M4": 215,
+        "M5_count": 6
+      },
+      "esperado": {
+        "veredicto": "falso_positivo",
+        "aceptables": [
+          "falso_positivo",
+          "indeterminado"
+        ],
+        "niveles": [
+          2
+        ],
+        "confianza_minima": 55
+      },
+      "justificacion": "Par de AT-06: metricas casi iguales, pero el equipo esta en la whitelist de la mesa de ayuda."
+    },
+    {
+      "id": "LG-04",
+      "conjunto": "desarrollo",
+      "clase": "legitimo",
+      "nombre": "Inventario con PowerShell Remoting",
+      "escenario": "Un administrador ejecuta Invoke-Command contra todos los equipos de la red de operaciones para recoger los parches instalados (Get-HotFix).",
+      "por_que_estas_metricas": "PowerShell Remoting usa WinRM (5985) hacia cada equipo: M1, M2 y M5 suben a la vez.",
+      "fuentes": [
+        {
+          "organizacion": "Microsoft",
+          "documento": "Running Remote Commands (PowerShell)",
+          "url": "https://learn.microsoft.com/en-us/powershell/scripting/security/remoting/running-remote-commands",
+          "dato": "Se pueden ejecutar comandos en uno o cientos de equipos con un solo comando de PowerShell; el remoting usa el protocolo WS-Management."
+        },
+        {
+          "organizacion": "MITRE ATT&CK",
+          "documento": "T1047 Windows Management Instrumentation",
+          "url": "https://attack.mitre.org/techniques/T1047/",
+          "dato": "WMI sobre WinRM usa el puerto 5985 (HTTP)."
+        }
+      ],
+      "contexto": {
+        "whitelist": [
+          {
+            "ip": "10.0.10.5",
+            "razon": "Equipo del administrador de sistemas; tareas de inventario con PowerShell Remoting"
+          }
+        ]
+      },
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 34,
+        "M2": 22,
+        "M3": false,
+        "M4": 150,
+        "M5_count": 22
+      },
+      "esperado": {
+        "veredicto": "falso_positivo",
+        "aceptables": [
+          "falso_positivo",
+          "indeterminado"
+        ],
+        "niveles": [
+          2
+        ],
+        "confianza_minima": 55
+      },
+      "justificacion": "Patron de administracion remota documentado por Microsoft, desde un equipo en la whitelist."
+    },
+    {
+      "id": "LG-05",
+      "conjunto": "validacion",
+      "clase": "legitimo",
+      "nombre": "Tarea programada recurrente ya revisada",
+      "escenario": "Un equipo sin whitelist dispara cada semana la misma alerta (M1, M2 y M4 apenas sobre el umbral) por una tarea programada. El operador ya la reviso tres veces y las tres fueron falsos positivos.",
+      "por_que_estas_metricas": "Senales debiles apenas sobre su umbral, sin M3 ni M5.",
+      "fuentes": [
+        {
+          "organizacion": "NIST",
+          "documento": "SP 800-61 Rev. 2, seccion 3.2.4 (Understand Normal Behaviors; Maintain and Use a Knowledge Base)",
+          "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf",
+          "dato": "Los equipos de respuesta deben conocer el comportamiento normal de redes y sistemas y mantener una base de conocimiento para consultarla durante el analisis."
+        }
+      ],
+      "contexto": {
+        "incidentes_previos": [
+          {
+            "host": "10.0.10.1",
+            "minutos_antes": 30240,
+            "veredicto": "falso_positivo",
+            "confianza": 72,
+            "metricas": [
+              "M1",
+              "M2",
+              "M4"
+            ]
+          },
+          {
+            "host": "10.0.10.1",
+            "minutos_antes": 20160,
+            "veredicto": "falso_positivo",
+            "confianza": 75,
+            "metricas": [
+              "M1",
+              "M2",
+              "M4"
+            ]
+          },
+          {
+            "host": "10.0.10.1",
+            "minutos_antes": 10080,
+            "veredicto": "falso_positivo",
+            "confianza": 74,
+            "metricas": [
+              "M1",
+              "M2",
+              "M4"
+            ]
+          }
+        ]
+      },
+      "alerta": {
+        "host": "10.0.10.1",
+        "M1": 22,
+        "M2": 17,
+        "M3": false,
+        "M4": 212,
+        "M5_count": 2
+      },
+      "esperado": {
+        "veredicto": "falso_positivo",
+        "aceptables": [
+          "falso_positivo",
+          "indeterminado"
+        ],
+        "niveles": [
+          2
+        ],
+        "confianza_minima": 55
+      },
+      "justificacion": "Solo senales debiles, y el historial del equipo (que el agente puede pedir) muestra la misma alerta revisada tres veces como falso positivo, una vez por semana."
+    },
+    {
+      "id": "AM-01",
+      "conjunto": "desarrollo",
+      "clase": "ambiguo",
+      "nombre": "Escaneo amplio desde un equipo desconocido",
+      "escenario": "Un equipo sin whitelist ni historial contacta por SMB y WMI a decenas de equipos. Puede ser un escaneo no registrado o el reconocimiento previo de un ataque.",
+      "por_que_estas_metricas": "Las mismas que LG-02: M1, M2, M4 y M5 muy por encima del umbral, sin M3.",
+      "fuentes": [
+        {
+          "organizacion": "Tenable",
+          "documento": "Credentialed Checks on Windows (Nessus 10.x)",
+          "url": "https://docs.tenable.com/nessus/10_12/Content/CredentialedChecksOnWindows.htm",
+          "dato": "Un escaneo autenticado usa SMB y WMI contra cada equipo."
+        },
+        {
+          "organizacion": "CISA, FBI, NSA, USSS",
+          "documento": "AA21-265A Conti Ransomware",
+          "url": "https://www.cisa.gov/sites/default/files/publications/AA21-265A-Conti_Ransomware_TLP_WHITE.pdf",
+          "dato": "Conti puede enumerar los recursos SMB abiertos de otros equipos (T1135, NetShareEnum) antes de propagarse."
+        }
+      ],
+      "contexto": {},
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 85,
+        "M2": 50,
+        "M3": false,
+        "M4": 610,
+        "M5_count": 30
+      },
+      "esperado": {
+        "veredicto": "indeterminado",
+        "aceptables": [
+          "indeterminado",
+          "confirmado"
+        ],
+        "niveles": [
+          1,
+          2
+        ],
+        "confianza_minima": 0
+      },
+      "justificacion": "Sin whitelist ni historial, un escaneo autorizado y uno malicioso se ven igual. Mantener el bloqueo (confirmado o indeterminado) es correcto; liberarlo como falso_positivo no lo es."
+    },
+    {
+      "id": "AM-02",
+      "conjunto": "validacion",
+      "clase": "ambiguo",
+      "nombre": "Solo senales debiles en el limite, sin historial",
+      "escenario": "Un equipo sin historial acumula M1, M2 y M4 apenas por encima del umbral, sin M3 ni M5. Ryu-IA no reinicia las metricas de un equipo con el tiempo, asi que pueden venir de momentos distintos.",
+      "por_que_estas_metricas": "Tres senales debiles en el limite, la combinacion minima para generar una alerta.",
+      "fuentes": [
+        {
+          "organizacion": "NIST",
+          "documento": "SP 800-61 Rev. 2, seccion 3.2.2 (Signs of an Incident)",
+          "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf",
+          "dato": "Los sistemas de deteccion producen falsos positivos; los analistas deben validar las alertas manualmente."
+        },
+        {
+          "organizacion": "Ryu-IA",
+          "documento": "ryu_controller.py (_trigger_metric)",
+          "url": "https://github.com/sbriceno1379/Ryu-IA/blob/main/ryu_controller.py",
+          "dato": "metrics_triggered acumula metricas por equipo sin ventana de tiempo."
+        }
+      ],
+      "contexto": {},
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 21,
+        "M2": 16,
+        "M3": false,
+        "M4": 206,
+        "M5_count": 1
+      },
+      "esperado": {
+        "veredicto": "indeterminado",
+        "aceptables": [
+          "indeterminado",
+          "falso_positivo"
+        ],
+        "niveles": [
+          2
+        ],
+        "confianza_minima": 0
+      },
+      "justificacion": "Nada de alta especificidad y ningun contexto: no hay base para confirmar un ataque, pero tampoco para descartarlo con seguridad."
+    },
+    {
+      "id": "DU-01",
+      "conjunto": "desarrollo",
+      "clase": "duplicado",
+      "nombre": "Alerta repetida tras reiniciar el controlador",
+      "escenario": "Ryu-IA guarda los bloqueos solo en memoria. Tras un reinicio, el equipo ya confirmado hace 4 minutos vuelve a generar la misma alerta.",
+      "por_que_estas_metricas": "Las mismas metricas que el incidente original.",
+      "fuentes": [
+        {
+          "organizacion": "Ryu-IA",
+          "documento": "ryu_controller.py (_block_host, blocked_hosts)",
+          "url": "https://github.com/sbriceno1379/Ryu-IA/blob/main/ryu_controller.py",
+          "dato": "blocked_hosts es un conjunto en memoria: un equipo bloqueado no vuelve a alertar salvo que el controlador se reinicie."
+        }
+      ],
+      "contexto": {
+        "incidentes_previos": [
+          {
+            "host": "10.0.10.2",
+            "minutos_antes": 4,
+            "veredicto": "confirmado",
+            "confianza": 93,
+            "metricas": [
+              "M1",
+              "M3",
+              "M5"
+            ]
+          }
+        ],
+        "nivel_alerta": "ALTO"
+      },
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 26,
+        "M2": 10,
+        "M3": true,
+        "M4": 70,
+        "M5_count": 9
+      },
+      "esperado": {
+        "veredicto": "ya_contenido",
+        "aceptables": [
+          "ya_contenido",
+          "confirmado"
+        ],
+        "niveles": [
+          1,
+          2
+        ],
+        "confianza_minima": 70
+      },
+      "justificacion": "El equipo ya esta bloqueado por un ataque confirmado hace 4 minutos con las mismas metricas. 'confirmado' es aceptable: solo genera un aviso de mas."
+    }
+  ]
+}

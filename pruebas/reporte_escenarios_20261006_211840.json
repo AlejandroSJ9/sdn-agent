@@ -1,0 +1,378 @@
+{
+  "timestamp": "2026-10-06T21:18:40.127117",
+  "modelo": "meta-llama/llama-3.1-8b-instruct",
+  "parametros": {
+    "validar": "False",
+    "conjunto": "desarrollo",
+    "ids": "None",
+    "repeticiones": "1",
+    "variantes": "0",
+    "semilla": "2026",
+    "db": "/home/alejandro/Desktop/sdn-agent/sdn_context.db",
+    "url": "http://localhost:8081"
+  },
+  "resumen": {
+    "ejecuciones": 12,
+    "validas": 8,
+    "errores_sistema": 4,
+    "aciertos": 6,
+    "tasa_acierto": 75.0,
+    "costo_total": 4,
+    "costo_medio": 0.5,
+    "fallos_criticos": [],
+    "nivel_correcto": 62.5,
+    "confianza_suficiente": 6,
+    "por_clase": {
+      "ambiguo": {
+        "aciertos": 1,
+        "total": 1
+      },
+      "ataque": {
+        "aciertos": 4,
+        "total": 4
+      },
+      "duplicado": {
+        "aciertos": 1,
+        "total": 1
+      },
+      "legitimo": {
+        "aciertos": 0,
+        "total": 2
+      }
+    },
+    "estabilidad": {
+      "AM-01": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-01": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-03": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-04": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-08": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "DU-01": {
+        "mas_comun": "ya_contenido",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "LG-01": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "LG-02": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      }
+    }
+  },
+  "resultados": [
+    {
+      "id": "AT-01",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.3",
+        "M1": 24,
+        "M2": 9,
+        "M3": true,
+        "M4": 60,
+        "M5_count": 8
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) Hay M3 y M5 juntas. (2) M1=24 pasa su limite por poco, pero no es un escaneo masivo. (3) El equipo no estaba bloqueado. (4) confirmado: dos senales fuertes juntas; no es indeterminado.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "tiempo_s": 8.0
+    },
+    {
+      "id": "AT-02",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 38,
+        "M2": 17,
+        "M3": true,
+        "M4": 140,
+        "M5_count": 12
+      },
+      "error": "Fallback del LLM: JSONDecodeError en turno 1: Expecting ',' delimiter: line 10 column 27 (char 434)",
+      "veredicto": null,
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "Fallback conservador -- revisar logs.",
+      "acierto": false,
+      "nivel_ok": false,
+      "confianza_ok": false,
+      "costo": 0,
+      "tiempo_s": 6.0
+    },
+    {
+      "id": "AT-03",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 46,
+        "M2": 31,
+        "M3": false,
+        "M4": 180,
+        "M5_count": 6
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 85,
+      "nivel": 1,
+      "razonamiento": "(1) Hay M5 con 6 conexiones. (2) M1=46 y M2=31 pasan su limite por mucho. (3) Sin historial del equipo. (4) confirmado: M5 con 6 conexiones (6 o mas).",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "tiempo_s": 8.0
+    },
+    {
+      "id": "AT-04",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 64,
+        "M2": 48,
+        "M3": false,
+        "M4": 520,
+        "M5_count": 17
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) Hay M5 con 17 conexiones directas entre usuarios. (2) M1=64 y M2=48 pasan su limite por mucho. (3) El equipo no estaba bloqueado. (4) confirmado: conexiones directas entre usuarios y escaneo masivo.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "tiempo_s": 4.0
+    },
+    {
+      "id": "AT-08",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.3",
+        "M1": 29,
+        "M2": 12,
+        "M3": true,
+        "M4": 90,
+        "M5_count": 9
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) Hay M3 y M5 con 9 conexiones directas entre usuarios. (2) M1=29 tambien pasa su limite por poco. (3) El equipo no estaba bloqueado. (4) confirmado: dos senales fuertes juntas; no es indeterminado.",
+      "acierto": true,
+      "nivel_ok": false,
+      "confianza_ok": true,
+      "costo": 0,
+      "tiempo_s": 6.0
+    },
+    {
+      "id": "AT-09",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 21,
+        "M2": 6,
+        "M3": false,
+        "M4": 230,
+        "M5_count": 5
+      },
+      "error": "Fallback del LLM: JSONDecodeError en turno 1: Expecting ',' delimiter: line 10 column 27 (char 540)",
+      "veredicto": null,
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "Fallback conservador -- revisar logs.",
+      "acierto": false,
+      "nivel_ok": false,
+      "confianza_ok": false,
+      "costo": 0,
+      "tiempo_s": 4.0
+    },
+    {
+      "id": "AT-10",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 27,
+        "M2": 9,
+        "M3": true,
+        "M4": 110,
+        "M5_count": 7
+      },
+      "error": "Fallback del LLM: JSONDecodeError en turno 1: Expecting ',' delimiter: line 10 column 27 (char 438)",
+      "veredicto": null,
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "Fallback conservador -- revisar logs.",
+      "acierto": false,
+      "nivel_ok": false,
+      "confianza_ok": false,
+      "costo": 0,
+      "tiempo_s": 8.0
+    },
+    {
+      "id": "LG-01",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.2",
+        "M1": 25,
+        "M2": 16,
+        "M3": true,
+        "M4": 120,
+        "M5_count": 8
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) Hay M3 y M5 con 8 conexiones directas entre usuarios. (2) M1=25 y M2=16 tambien pasan su limite por poco. (3) El equipo no estaba bloqueado. (4) confirmado: dos senales fuertes juntas; no es indeterminado.",
+      "acierto": false,
+      "nivel_ok": false,
+      "confianza_ok": false,
+      "costo": 2,
+      "tiempo_s": 8.0,
+      "critico": false
+    },
+    {
+      "id": "LG-02",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.4",
+        "M1": 88,
+        "M2": 52,
+        "M3": false,
+        "M4": 640,
+        "M5_count": 34
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) Hay M5 con 34 conexiones entre usuarios. (2) M1=88 y M2=52 pasan su limite por mucho. (3) El equipo no estaba bloqueado. (4) confirmado: dos senales fuertes juntas; no es indeterminado.",
+      "acierto": false,
+      "nivel_ok": false,
+      "confianza_ok": false,
+      "costo": 2,
+      "tiempo_s": 8.0,
+      "critico": false
+    },
+    {
+      "id": "LG-04",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 34,
+        "M2": 22,
+        "M3": false,
+        "M4": 150,
+        "M5_count": 22
+      },
+      "error": "Fallback del LLM: JSONDecodeError en turno 1: Expecting ',' delimiter: line 10 column 27 (char 472)",
+      "veredicto": null,
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "Fallback conservador -- revisar logs.",
+      "acierto": false,
+      "nivel_ok": false,
+      "confianza_ok": false,
+      "costo": 0,
+      "tiempo_s": 4.0
+    },
+    {
+      "id": "AM-01",
+      "ejecucion": "r1",
+      "clase": "ambiguo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 85,
+        "M2": 50,
+        "M3": false,
+        "M4": 610,
+        "M5_count": 30
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) Hay M5 con 30 conexiones directas entre usuarios. (2) M1=85 y M2=50 tambien pasan su limite. (3) El equipo no estaba bloqueado ni fue senalado como equipo en riesgo en un incidente anterior. (4) confirmado: dos senales fuertes juntas; no es indeterminado.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "tiempo_s": 6.0
+    },
+    {
+      "id": "DU-01",
+      "ejecucion": "r1",
+      "clase": "duplicado",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 26,
+        "M2": 10,
+        "M3": true,
+        "M4": 70,
+        "M5_count": 9
+      },
+      "error": "",
+      "veredicto": "ya_contenido",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) El equipo ya estaba bloqueado por un ataque confirmado. (2) La alerta es una copia de la anterior. (3) No hay nuevos datos que contradigan el veredicto. (4) ya_contenido: es una copia de una alerta ya bloqueada.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "tiempo_s": 2.0
+    }
+  ]
+}

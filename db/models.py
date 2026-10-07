@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS incidentes (
     veredicto   TEXT,
     confianza   INTEGER,
     nivel_auto  INTEGER,
-    payload     TEXT
+    payload     TEXT,
+    razonamiento TEXT,
+    error       TEXT
 );
 
 CREATE TABLE IF NOT EXISTS hosts_bloqueados (
@@ -48,3 +50,13 @@ CREATE TABLE IF NOT EXISTS estado_red (
 INSERT OR IGNORE INTO estado_red VALUES ('nivel_alerta','NORMAL');
 INSERT OR IGNORE INTO estado_red VALUES ('incidentes_sesion', '0');
 """
+
+# Columnas agregadas despues de la version inicial del esquema.
+# CREATE TABLE IF NOT EXISTS no las agrega a una DB existente,
+# init_db() las crea con ALTER TABLE si faltan.
+COLUMNAS_NUEVAS = {
+    'incidentes': {
+        'razonamiento': 'TEXT',   # analisis del LLM
+        'error':        'TEXT',   # motivo si el veredicto es el fallback
+    },
+}

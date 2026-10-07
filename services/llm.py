@@ -20,7 +20,7 @@ from services.prompt import (
 )
 from db.repository import (
     get_historial_host, get_hosts_bloqueados, get_hosts_riesgo,
-    get_estado_red, esta_en_whitelist,
+    get_estado_red, esta_en_whitelist, get_whitelist,
 )
 from integrations.ryu_rest import get_flujos, get_puertos
 
@@ -42,6 +42,15 @@ _VEREDICTO_FALLBACK = {
     'recomendaciones_forenses':       ['Revisar manualmente el incidente'],
     'actualizar_estado_red':          {'nivel_alerta_red': 'ALTO'},
 }
+
+
+def _fallback(motivo: str) -> dict:
+    """
+    Veredicto conservador cuando el LLM no responde.
+    El campo 'error' se guarda en la DB para que el fallback no se confunda
+    con un veredicto 'indeterminado' real del modelo.
+    """
+    return {**_VEREDICTO_FALLBACK, 'error': motivo}
 
 
 # =============================================================================
@@ -158,6 +167,59 @@ def _wrap(texto: str, ancho: int) -> list:
 
 
 # =============================================================================
+# Parseo tolerante de la respuesta
+# =============================================================================
+
+_IP_SUELTA = re.compile(r'\d{1,3}(?:\.\d{1,3}){3}')
+
+
+def _citar_ips_sueltas(texto: str) -> str:
+    """
+    Pone comillas a las IPs escritas sin ellas fuera de los strings JSON,
+    p. ej. "hosts_en_riesgo": [10.0.10.2] -> ["10.0.10.2"]. Los modelos
+    pequenos lo hacen a menudo. Las IPs dentro de strings no se tocan.
+    """
+    salida, i, en_string = [], 0, False
+    while i < len(texto):
+        c = texto[i]
+        if en_string:
+            salida.append(c)
+            if c == '\\' and i + 1 < len(texto):
+                salida.append(texto[i + 1])
+                i += 1
+            elif c == '"':
+                en_string = False
+        elif c == '"':
+            en_string = True
+            salida.append(c)
+        else:
+            m = _IP_SUELTA.match(texto, i)
+            if m:
+                salida.append(f'"{m.group()}"')
+                i = m.end()
+                continue
+            salida.append(c)
+        i += 1
+    return ''.join(salida)
+
+
+def _parsear_json(raw: str) -> dict:
+    """Parsea la respuesta del LLM, recortando texto extra y citando IPs sueltas."""
+    candidatos = [raw]
+    match = re.search(r'\{.*\}', raw, re.DOTALL)
+    if match:
+        candidatos.append(match.group())
+    for texto in candidatos:
+        for intento in (texto, _citar_ips_sueltas(texto)):
+            try:
+                return json.loads(intento)
+            except json.JSONDecodeError:
+                continue
+    # Relanzar el error del recorte, que es el mas informativo
+    return json.loads(_citar_ips_sueltas(candidatos[-1]))
+
+
+# =============================================================================
 # Llamada HTTP a OpenRouter
 # =============================================================================
 
@@ -190,15 +252,7 @@ def _llamar_openai(messages: list[dict], turno: int) -> dict:
     raw = data['choices'][0]['message']['content'].strip()
     logger.info(f'[LLM RAW COMPLETO]\n{raw}')
 
-    # Intentar parsear JSON
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError:
-        match = re.search(r'\{.*\}', raw, re.DOTALL)
-        if match:
-            parsed = json.loads(match.group())
-        else:
-            raise ValueError(f'No se pudo parsear JSON: {raw[:300]}')
+    parsed = _parsear_json(raw)
 
     # Log de la respuesta completa
     _log_response(raw, parsed, turno)
@@ -264,8 +318,13 @@ def analizar_incidente(payload: dict) -> dict:
     hosts_bloqueados = get_hosts_bloqueados()
     hosts_riesgo     = get_hosts_riesgo()
 
+    # La whitelist y el historial van en el primer mensaje: los modelos
+    # pequenos casi nunca piden datos, y sin ellos un caso legitimo no
+    # se puede distinguir de un ataque.
     user_prompt = construir_user_prompt(
-        payload, estado_red, hosts_bloqueados, hosts_riesgo
+        payload, estado_red, hosts_bloqueados, hosts_riesgo,
+        whitelist=get_whitelist(src_ip),
+        historial=get_historial_host(src_ip),
     )
     messages = [
         {'role': 'system', 'content': get_system_prompt()},
@@ -286,11 +345,11 @@ def analizar_incidente(payload: dict) -> dict:
                 logger.warning('[LLM] Rate limit -- retornando fallback')
             elif e.code == 402:
                 logger.warning('[LLM] Creditos insuficientes en OpenRouter')
-            return _VEREDICTO_FALLBACK
+            return _fallback(f'HTTP {e.code} en turno {turno}: {body[:300]}')
 
         except (urllib.error.URLError, ValueError, Exception) as e:
             _log_error(e)
-            return _VEREDICTO_FALLBACK
+            return _fallback(f'{type(e).__name__} en turno {turno}: {str(e)[:300]}')
 
         estado_respuesta = respuesta.get('estado')
 
@@ -317,4 +376,4 @@ def analizar_incidente(payload: dict) -> dict:
             return respuesta
 
     logger.warning(f'[LLM] Limite de turnos alcanzado para {src_ip} -- fallback')
-    return _VEREDICTO_FALLBACK
+    return _fallback(f'Limite de {MAX_TURNOS_LLM} turnos alcanzado sin veredicto final')

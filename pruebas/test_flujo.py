@@ -30,7 +30,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional
 
 AGENTE_URL = 'http://localhost:8081'
-TIMEOUT    = 30  # segundos por prueba
+TIMEOUT    = 200  # segundos por prueba
 
 # Colores
 OK    = '\033[92m'
@@ -624,15 +624,20 @@ def build_casos() -> list[CasoPrueba]:
 # Motor de pruebas
 # =============================================================================
 
-def esperar_procesamiento(host: str, timeout: int = 25) -> Optional[dict]:
-    """Espera a que el agente registre el incidente en la DB."""
+def esperar_procesamiento(payload: dict, timeout: int = TIMEOUT) -> Optional[dict]:
+    """
+    Espera a que el agente registre el incidente de ESTE payload en la DB.
+    Se identifica por host + timestamp: buscar solo por host devolvia
+    incidentes de casos o corridas anteriores con la misma IP.
+    """
+    host, timestamp = payload['host_origen'], payload['timestamp']
     inicio = time.time()
     while time.time() - inicio < timeout:
         time.sleep(2)
         incidentes = get(f'{AGENTE_URL}/incidentes?limite=50')
         if incidentes:
             for inc in incidentes:
-                if inc.get('host') == host:
+                if inc.get('host') == host and inc.get('timestamp') == timestamp:
                     return inc
     return None
 
@@ -650,11 +655,18 @@ def ejecutar_caso(caso: CasoPrueba) -> ResultadoPrueba:
             return resultado
 
         # Esperar procesamiento en background
-        incidente = esperar_procesamiento(caso.payload['host_origen'])
+        incidente = esperar_procesamiento(caso.payload)
         resultado.tiempo_ms = (time.time() - inicio) * 1000
 
         if not incidente:
-            resultado.error = 'Timeout -- el agente no registro el incidente en 25s'
+            resultado.error = f'Timeout -- el agente no registro el incidente en {TIMEOUT}s'
+            return resultado
+
+        resultado.razonamiento_llm = incidente.get('razonamiento') or ''
+
+        # El agente guardo el veredicto de fallback: el LLM no respondio
+        if incidente.get('error'):
+            resultado.error = f'Fallback del LLM -- {incidente["error"]}'
             return resultado
 
         resultado.veredicto_obtenido = incidente.get('veredicto', '')
@@ -771,6 +783,8 @@ def imprimir_resultado(r: ResultadoPrueba, num: int, total: int):
         print(f'         Tiempo:     {r.tiempo_ms:.0f}ms')
         if r.razon_fallo:
             print(f'         {FAIL}Fallo:{END}      {r.razon_fallo}')
+            if r.razonamiento_llm:
+                print(f'         Razonamiento: {r.razonamiento_llm}')
     print(f'         Host:       {r.caso.payload["host_origen"]}  '
           f'puntaje={r.caso.payload["puntaje_total"]}')
 
@@ -894,6 +908,7 @@ def exportar_json(resultados: list[ResultadoPrueba],
                 'paso':              r.paso,
                 'tiempo_ms':         r.tiempo_ms,
                 'razon_fallo':       r.razon_fallo,
+                'razonamiento_llm':  r.razonamiento_llm,
                 'error':             r.error,
             }
             for r in resultados
@@ -925,7 +940,7 @@ def main():
 
     print(f'\n{OK}Agente conectado{END} — modelo: {health.get("modelo")}')
     print(f'{INFO}Ejecutando 20 casos de prueba...{END}')
-    print(f'{WARN}Tiempo estimado: 8-12 minutos (cada caso espera 25s){END}\n')
+    print(f'{WARN}Tiempo estimado: 8-12 minutos (cada caso espera la respuesta del LLM){END}\n')
 
     casos     = build_casos()
     resultados: list[ResultadoPrueba] = []

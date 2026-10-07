@@ -55,8 +55,9 @@ def registrar_incidente(payload: dict, veredicto: dict) -> None:
     with get_connection() as conn:
         conn.execute("""
             INSERT INTO incidentes
-                (host, timestamp, puntaje, metricas, veredicto, confianza, nivel_auto, payload)
-            VALUES (?,?,?,?,?,?,?,?)
+                (host, timestamp, puntaje, metricas, veredicto, confianza, nivel_auto, payload,
+                 razonamiento, error)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
         """, (
             payload['host_origen'],
             payload['timestamp'],
@@ -66,6 +67,8 @@ def registrar_incidente(payload: dict, veredicto: dict) -> None:
             veredicto.get('confianza', 0),
             veredicto.get('nivel_autonomia', 1),
             json.dumps(payload),
+            veredicto.get('razonamiento', ''),
+            veredicto.get('error'),
         ))
 
         # Registrar host como bloqueado
@@ -119,7 +122,8 @@ def registrar_incidente(payload: dict, veredicto: dict) -> None:
 def get_incidentes(limite: int = 50) -> list[dict]:
     with get_connection() as conn:
         rows = conn.execute("""
-            SELECT host, timestamp, puntaje, veredicto, confianza, nivel_auto, metricas
+            SELECT host, timestamp, puntaje, veredicto, confianza, nivel_auto, metricas,
+                   razonamiento, error
             FROM incidentes
             ORDER BY timestamp DESC
             LIMIT ?
@@ -132,6 +136,8 @@ def get_incidentes(limite: int = 50) -> list[dict]:
         'confianza': r['confianza'],
         'nivel':     r['nivel_auto'],
         'metricas':  json.loads(r['metricas'] or '[]'),
+        'razonamiento': r['razonamiento'],
+        'error':     r['error'],
     } for r in rows]
 
 
@@ -203,6 +209,15 @@ def agregar_whitelist(ip: str, razon: str = '') -> None:
             (ip, datetime.utcnow().isoformat(), razon)
         )
     logger.info(f'[Repository] IP agregada a whitelist: {ip}')
+
+
+def get_whitelist(ip: str) -> dict | None:
+    """Entrada de whitelist del host (ip, agregado, razon) o None."""
+    with get_connection() as conn:
+        row = conn.execute(
+            'SELECT ip, agregado, razon FROM whitelist WHERE ip=?', (ip,)
+        ).fetchone()
+    return dict(row) if row else None
 
 
 def esta_en_whitelist(ip: str) -> bool:
