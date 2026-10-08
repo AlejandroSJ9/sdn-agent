@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import Callable
 
 from config import TELEGRAM_ENABLED
-from services.llm import analizar_incidente
+from services.monolitico import analizar_incidente
 from db.repository import (
     registrar_incidente,
     desbloquear_host_db,
