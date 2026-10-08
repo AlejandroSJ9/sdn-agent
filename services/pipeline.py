@@ -17,6 +17,7 @@ import logging
 import time
 from collections import deque
 
+from config import LLM_PIPELINE
 from db.repository import (
     get_historial_host, get_hosts_bloqueados, get_hosts_riesgo,
     get_estado_red, esta_en_whitelist, get_whitelist,
@@ -187,7 +188,13 @@ def get_trazas() -> list[dict]:
 
 
 def analizar_incidente(payload: dict) -> dict:
+    """Punto de entrada de services/agente.py. LLM_PIPELINE elige el analizador."""
     inicio = time.monotonic()
-    resultado = analizar_por_etapas(payload)
-    _guardar_traza(payload, 'etapas', resultado, round((time.monotonic() - inicio) * 1000))
+    if LLM_PIPELINE == 'monolitico':
+        # Import diferido: services.monolitico importa resolver_solicitud de aqui
+        from services.monolitico import analizar_incidente as analizar_monolitico
+        resultado = analizar_monolitico(payload)
+    else:
+        resultado = analizar_por_etapas(payload)
+    _guardar_traza(payload, LLM_PIPELINE, resultado, round((time.monotonic() - inicio) * 1000))
     return resultado

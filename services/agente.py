@@ -2,7 +2,7 @@
 services/agente.py
 Orquestador central. Coordina el flujo completo de un incidente:
   1. Recibe el payload de Ryu
-  2. Lo analiza con el LLM (services/llm.py)
+  2. Lo analiza con el LLM (services/pipeline.py)
   3. Registra el resultado en la DB (db/repository.py)
   4. Ejecuta acciones en Ryu (integrations/ryu_rest.py)
   5. Notifica por Telegram (integrations/telegram.py)
@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import Callable
 
 from config import TELEGRAM_ENABLED
-from services.monolitico import analizar_incidente
+from services.pipeline import analizar_incidente
 from db.repository import (
     registrar_incidente,
     desbloquear_host_db,

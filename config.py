@@ -64,6 +64,15 @@ RYU_REST_URL = os.getenv('RYU_REST_URL', 'http://localhost:8080')
 RYU_TIMEOUT  = int(os.getenv('RYU_TIMEOUT', '5'))
 
 # -- Logica del agente --------------------------------------------------------
+# etapas:     triage -> veredicto -> respuesta (services/pipeline.py)
+# monolitico: prompt unico con loop de MAX_TURNOS_LLM turnos (services/monolitico.py),
+#             se conserva para comparar ambas versiones en la tesis
+LLM_PIPELINE = os.getenv('LLM_PIPELINE', 'etapas').strip().lower()
+if LLM_PIPELINE not in ('etapas', 'monolitico'):
+    raise EnvironmentError(
+        f'LLM_PIPELINE={LLM_PIPELINE!r} no es valido. Usar "etapas" o "monolitico".'
+    )
+
 MAX_TURNOS_LLM        = int(os.getenv('MAX_TURNOS_LLM', '3'))
 HITL_TIMEOUT_SEGUNDOS = int(os.getenv('HITL_TIMEOUT_SEC', '600'))
 

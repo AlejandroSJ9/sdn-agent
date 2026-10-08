@@ -15,13 +15,14 @@ Variables de entorno:
     TELEGRAM_ENABLED    -> true/false (default: true)
     RYU_REST_URL        -> URL de la REST API de Ryu (default: http://localhost:8080)
     DB_FILE             -> ruta del archivo SQLite (default: sdn_context.db)
+    LLM_PIPELINE        -> etapas | monolitico (default: etapas)
 """
 
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from config import OPENAI_MODEL, RYU_REST_URL, TELEGRAM_ENABLED
+from config import OPENAI_MODEL, RYU_REST_URL, TELEGRAM_ENABLED, LLM_PIPELINE
 from services.agente import iniciar_servicios
 from api.routes_alertas   import router as router_alertas
 from api.routes_dashboard import router as router_dashboard
@@ -71,6 +72,7 @@ async def startup():
     logger.info('=' * 60)
     logger.info('  SDN Security Agent v2.0 iniciado')
     logger.info(f'  Modelo LLM:  {OPENAI_MODEL}')
+    logger.info(f'  Pipeline:    {LLM_PIPELINE}')
     logger.info(f'  Ryu REST:    {RYU_REST_URL}')
     logger.info(f'  Telegram:    {"activo" if TELEGRAM_ENABLED else "desactivado"}')
     logger.info('  Docs:        http://localhost:8081/docs')
@@ -92,6 +94,7 @@ def health():
     return {
         'status':            'ok',
         'modelo':            OPENAI_MODEL,
+        'pipeline':          LLM_PIPELINE,
         'ryu_rest':          RYU_REST_URL,
         'telegram':          TELEGRAM_ENABLED,
         'ws_clientes':       ws_manager.num_clientes,

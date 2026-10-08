@@ -17,6 +17,7 @@ from db.repository import (
 )
 from integrations.ryu_rest import get_flujos, get_topologia_switches, get_topologia_hosts
 from integrations.telegram import get_acciones_pendientes
+from services.pipeline import get_trazas
 from api.websocket import ws_manager
 
 logger = logging.getLogger('AgenteSDN.routes.dashboard')
@@ -76,3 +77,9 @@ def topologia():
 @router.get('/umbrales', summary='Umbrales de deteccion actuales')
 def leer_umbrales():
     return get_umbrales()
+
+
+@router.get('/trazas', summary='Traza del analisis LLM de los ultimos incidentes')
+def trazas():
+    """Latencia, reintentos y fallback por etapa (en memoria, para las pruebas)."""
+    return get_trazas()

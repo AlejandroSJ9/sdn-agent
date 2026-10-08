@@ -23,6 +23,7 @@ from pathlib import Path
 # config.py exige estas variables al importarse; las pruebas no las usan
 os.environ.setdefault('OPENROUTER_API_KEY', 'sk-test')
 os.environ['TELEGRAM_ENABLED'] = 'false'
+os.environ['LLM_PIPELINE'] = 'etapas'
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from services import reglas  # noqa: E402
