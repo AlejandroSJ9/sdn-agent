@@ -24,6 +24,8 @@ Uso:
   python test_escenarios.py                           # conjunto 'desarrollo'
   python test_escenarios.py --conjunto validacion     # solo al final del ajuste
   python test_escenarios.py --repeticiones 3 --variantes 2
+  python test_escenarios.py --pipeline monolitico    # el agente debe correr con LLM_PIPELINE=monolitico
+  python test_escenarios.py --comparar rep_mono.json rep_etapas.json
 """
 
 import argparse
@@ -63,6 +65,8 @@ COSTO_ERROR = {
 }
 COSTO_DEFECTO = 1
 CRITICOS = {('ataque', 'falso_positivo'), ('duplicado', 'falso_positivo')}
+
+ETAPAS = ('triage', 'veredicto', 'respuesta')
 
 OK, FAIL, WARN, INFO, BOLD, END = '\033[92m', '\033[91m', '\033[93m', '\033[94m', '\033[1m', '\033[0m'
 SEP = '─' * 65
@@ -264,6 +268,27 @@ def http(metodo: str, url: str, cuerpo: Optional[dict] = None, timeout: int = 10
         return {'connection_error': str(e)}
 
 
+def buscar_traza(host: str, ts: str) -> Optional[dict]:
+    """Traza del analisis (GET /trazas): latencia, reintentos y fallback por etapa."""
+    trazas = http('GET', f'{AGENTE_URL}/trazas')
+    if isinstance(trazas, list):
+        for t in reversed(trazas):
+            if t.get('host') == host and t.get('timestamp') == ts:
+                return t
+    return None
+
+
+def es_error_de_sistema(error: str, pipeline: str) -> bool:
+    """
+    monolitico: cualquier fallback deja el veredicto sin LLM.
+    etapas: solo si cayo la etapa de veredicto o el pipeline completo; un
+    fallback de triage o respuesta no cambia el veredicto.
+    """
+    if pipeline == 'monolitico':
+        return True
+    return any(parte.strip().startswith(('etapa2:', 'pipeline:')) for parte in error.split(';'))
+
+
 def esperar_incidente(host: str, ts: str, timeout: int) -> Optional[dict]:
     inicio = time.time()
     while time.time() - inicio < timeout:
@@ -280,7 +305,7 @@ def esperar_incidente(host: str, ts: str, timeout: int) -> Optional[dict]:
 # Ejecucion y evaluacion
 # =============================================================================
 
-def ejecutar(caso: dict, alerta: dict, db: Path, etiqueta: str) -> dict:
+def ejecutar(caso: dict, alerta: dict, db: Path, etiqueta: str, pipeline: str) -> dict:
     ahora = datetime.utcnow()
     ts = ahora.isoformat() + 'Z'
     preparar_db(db, caso.get('contexto', {}), ahora)
@@ -289,7 +314,8 @@ def ejecutar(caso: dict, alerta: dict, db: Path, etiqueta: str) -> dict:
     r = {'id': caso['id'], 'ejecucion': etiqueta, 'clase': caso['clase'],
          'conjunto': caso['conjunto'], 'alerta': alerta, 'error': '',
          'veredicto': None, 'confianza': None, 'nivel': None, 'razonamiento': '',
-         'acierto': False, 'nivel_ok': False, 'confianza_ok': False, 'costo': 0}
+         'acierto': False, 'nivel_ok': False, 'confianza_ok': False, 'costo': 0,
+         'error_llm': None, 'traza': None}
 
     inicio = time.time()
     resp = http('POST', f'{AGENTE_URL}/alert', payload)
@@ -305,7 +331,9 @@ def ejecutar(caso: dict, alerta: dict, db: Path, etiqueta: str) -> dict:
         r['error'] = f'Timeout: el agente no registro el incidente en {TIMEOUT}s'
         return r
     r['razonamiento'] = inc.get('razonamiento') or ''
-    if inc.get('error'):
+    r['traza'] = buscar_traza(payload['host_origen'], ts)
+    r['error_llm'] = inc.get('error')
+    if inc.get('error') and es_error_de_sistema(inc['error'], pipeline):
         r['error'] = f'Fallback del LLM: {inc["error"]}'
         return r
 
@@ -337,6 +365,7 @@ def resumir(resultados: list[dict]) -> dict:
 
     n = len(validos)
     return {
+        **metricas_llm(resultados),
         'ejecuciones':           len(resultados),
         'validas':               n,
         'errores_sistema':       len(resultados) - n,
@@ -356,6 +385,32 @@ def resumir(resultados: list[dict]) -> dict:
     }
 
 
+def metricas_llm(resultados: list[dict]) -> dict:
+    """Fallbacks y latencia media por etapa, a partir de la traza de cada ejecucion."""
+    con_traza = [r for r in resultados if r.get('traza')]
+    fallbacks, reintentos, latencias = {}, {}, {}
+    for r in con_traza:
+        t = r['traza']
+        latencias.setdefault('total', []).append(t.get('latencia_ms', 0))
+        if t.get('pipeline') == 'monolitico':
+            fallbacks['monolitico'] = fallbacks.get('monolitico', 0) + bool(t.get('error'))
+            continue
+        for etapa in ETAPAS:
+            e = t.get('traza', {}).get(etapa)
+            if e is None:
+                continue
+            fallbacks[etapa]  = fallbacks.get(etapa, 0) + bool(e.get('fallback'))
+            reintentos[etapa] = reintentos.get(etapa, 0) + bool(e.get('reintento'))
+            latencias.setdefault(etapa, []).append(e.get('latencia_ms', 0))
+    return {
+        'con_traza':               len(con_traza),
+        'fallbacks_por_etapa':     fallbacks,
+        'reintentos_por_etapa':    reintentos,
+        'latencia_media_ms':       {k: round(sum(v) / len(v)) for k, v in latencias.items() if v},
+        'ejecuciones_con_error_llm': sum(1 for r in resultados if r.get('error_llm')),
+    }
+
+
 def imprimir(r: dict, caso: dict) -> None:
     esp = caso['esperado']
     if r['error']:
@@ -366,6 +421,8 @@ def imprimir(r: dict, caso: dict) -> None:
     print(f'  {marca} {r["id"]} [{r["ejecucion"]}] {caso["clase"]:9} '
           f'esperado={esp["veredicto"]:14} obtenido={r["veredicto"]} '
           f'({r["confianza"]}%, nivel {r["nivel"]}){nivel}  {r.get("tiempo_s", 0)}s')
+    if r.get('error_llm'):
+        print(f'         {WARN}fallback parcial: {r["error_llm"]}{END}')
     if not r['acierto']:
         critico = f' {FAIL}CRITICO{END}' if r.get('critico') else ''
         print(f'         costo={r["costo"]}{critico} | aceptables={esp["aceptables"]}')
@@ -382,6 +439,9 @@ def imprimir_resumen(res: dict) -> None:
     color = FAIL if res['fallos_criticos'] else OK
     print(f'  Fallos criticos:      {color}{res["fallos_criticos"] or "ninguno"}{END}')
     print(f'  Nivel correcto:       {res["nivel_correcto"]}%')
+    print(f'  Fallbacks por etapa:  {res["fallbacks_por_etapa"] or "sin traza"}')
+    print(f'  Reintentos por etapa: {res["reintentos_por_etapa"] or "-"}')
+    print(f'  Latencia media (ms):  {res["latencia_media_ms"] or "sin traza"}')
     print(f'\n  {BOLD}Por clase:{END}')
     for clase, v in res['por_clase'].items():
         print(f'    {clase:10} {v["aciertos"]}/{v["total"]}')
@@ -390,6 +450,37 @@ def imprimir_resumen(res: dict) -> None:
         print(f'\n  {BOLD}Casos inestables (el veredicto cambia entre ejecuciones):{END}')
         for cid, v in inestables.items():
             print(f'    {cid}: {v["coinciden"]}/{v["ejecuciones"]} -> {v["mas_comun"]}')
+
+
+def comparar(rutas: list[Path]) -> None:
+    """Tabla comparativa de varios reportes (p. ej. monolitico contra etapas)."""
+    reportes = [json.loads(Path(r).read_text(encoding='utf-8')) for r in rutas]
+    cols = [rep.get('pipeline') or rep['parametros'].get('pipeline', '?') for rep in reportes]
+    filas = [
+        ('Ejecuciones', lambda s: s['ejecuciones']),
+        ('Validas', lambda s: s['validas']),
+        ('Errores de sistema', lambda s: s['errores_sistema']),
+        ('Aciertos', lambda s: f'{s["aciertos"]}/{s["validas"]}'),
+        ('Tasa de acierto %', lambda s: s['tasa_acierto']),
+        ('Nivel correcto %', lambda s: s['nivel_correcto']),
+        ('Costo total', lambda s: s['costo_total']),
+        ('Fallos criticos', lambda s: ', '.join(s['fallos_criticos']) or '-'),
+        ('Respuestas provisionales', lambda s: s.get('respuestas_provisionales_ryu', '-')),
+    ]
+    for clase in sorted(CLASES):
+        filas.append((f'Aciertos {clase}', lambda s, c=clase:
+                      f'{s["por_clase"][c]["aciertos"]}/{s["por_clase"][c]["total"]}' if c in s['por_clase'] else '-'))
+    claves_fb = sorted({k for rep in reportes for k in rep['resumen'].get('fallbacks_por_etapa', {})})
+    for k in claves_fb:
+        filas.append((f'Fallbacks {k}', lambda s, k=k: s.get('fallbacks_por_etapa', {}).get(k, '-')))
+    claves_lat = sorted({k for rep in reportes for k in rep['resumen'].get('latencia_media_ms', {})})
+    for k in claves_lat:
+        filas.append((f'Latencia media {k} ms', lambda s, k=k: s.get('latencia_media_ms', {}).get(k, '-')))
+
+    ancho = max(len(f[0]) for f in filas) + 2
+    print(f'\n{BOLD}{"":{ancho}}' + ''.join(f'{c:>14}' for c in cols) + END)
+    for nombre, fn in filas:
+        print(f'{nombre:{ancho}}' + ''.join(f'{str(fn(rep["resumen"])):>14}' for rep in reportes))
 
 
 def main() -> None:
@@ -403,8 +494,15 @@ def main() -> None:
     ap.add_argument('--semilla', type=int, default=2026)
     ap.add_argument('--db', type=Path, default=DB_DEFECTO, help='DB que usa el agente')
     ap.add_argument('--url', default=AGENTE_URL)
+    ap.add_argument('--pipeline', choices=['etapas', 'monolitico'], default='etapas',
+                    help='pipeline que se espera en el agente (LLM_PIPELINE al arrancarlo)')
+    ap.add_argument('--comparar', nargs='+', type=Path, metavar='REPORTE',
+                    help='imprime la tabla comparativa de estos reportes y termina')
     args = ap.parse_args()
     AGENTE_URL = args.url
+    if args.comparar:
+        comparar(args.comparar)
+        return
 
     datos = json.loads(ESCENARIOS.read_text(encoding='utf-8'))
     casos = datos['casos']
@@ -431,8 +529,12 @@ def main() -> None:
     salud = http('GET', f'{AGENTE_URL}/health')
     if not isinstance(salud, dict) or salud.get('status') != 'ok':
         raise SystemExit(f'{FAIL}El agente no responde en {AGENTE_URL}{END}: {salud}')
+    if salud.get('pipeline', 'monolitico') != args.pipeline:
+        raise SystemExit(f'{FAIL}El agente corre con LLM_PIPELINE={salud.get("pipeline")} y se pidio '
+                         f'--pipeline {args.pipeline}{END}: reiniciarlo con LLM_PIPELINE={args.pipeline}')
 
-    print(f'\n{BOLD}EVALUACION CON ESCENARIOS{END} -- modelo: {salud.get("modelo")}')
+    print(f'\n{BOLD}EVALUACION CON ESCENARIOS{END} -- modelo: {salud.get("modelo")} '
+          f'-- pipeline: {args.pipeline}')
     print(f'Conjunto: {args.conjunto} | casos: {len(casos)} | repeticiones: {args.repeticiones} '
           f'| variantes: {args.variantes} | DB: {args.db}')
     print(f'{WARN}Cada caso borra incidentes, bloqueos, hosts en riesgo y whitelist de esa DB.{END}\n{SEP}')
@@ -443,17 +545,18 @@ def main() -> None:
         ejecuciones = [(f'r{i + 1}', caso['alerta']) for i in range(args.repeticiones)]
         ejecuciones += [(f'v{i + 1}', variante(caso['alerta'], rng)) for i in range(args.variantes)]
         for etiqueta, alerta in ejecuciones:
-            r = ejecutar(caso, alerta, args.db, etiqueta)
+            r = ejecutar(caso, alerta, args.db, etiqueta, args.pipeline)
             resultados.append(r)
             imprimir(r, caso)
 
     resumen = resumir(resultados)
     imprimir_resumen(resumen)
 
-    archivo = AQUI / f'reporte_escenarios_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+    archivo = AQUI / f'reporte_escenarios_{args.pipeline}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
     archivo.write_text(json.dumps({
         'timestamp': datetime.now().isoformat(),
         'modelo': salud.get('modelo'),
+        'pipeline': args.pipeline,
         'parametros': {k: str(v) for k, v in vars(args).items()},
         'resumen': resumen,
         'resultados': resultados,

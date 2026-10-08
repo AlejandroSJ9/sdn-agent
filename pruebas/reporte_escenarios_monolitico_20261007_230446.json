@@ -1,0 +1,639 @@
+{
+  "timestamp": "2026-10-07T23:04:46.119230",
+  "modelo": "meta-llama/llama-3.1-8b-instruct",
+  "pipeline": "monolitico",
+  "parametros": {
+    "validar": "False",
+    "conjunto": "desarrollo",
+    "ids": "None",
+    "repeticiones": "1",
+    "variantes": "0",
+    "semilla": "2026",
+    "db": "/tmp/claude-1000/-home-alejandro-Desktop-sdn-agent/24afa11f-77f7-45e2-8854-444ddc825b72/scratchpad/sdn_eval.db",
+    "url": "http://localhost:8081",
+    "pipeline": "monolitico",
+    "comparar": "None"
+  },
+  "resumen": {
+    "con_traza": 12,
+    "fallbacks_por_etapa": {
+      "monolitico": 0
+    },
+    "reintentos_por_etapa": {},
+    "latencia_media_ms": {
+      "total": 5949
+    },
+    "ejecuciones_con_error_llm": 0,
+    "ejecuciones": 12,
+    "validas": 12,
+    "errores_sistema": 0,
+    "respuestas_provisionales_ryu": 8,
+    "aciertos": 10,
+    "tasa_acierto": 83.3,
+    "costo_total": 4,
+    "costo_medio": 0.33,
+    "fallos_criticos": [],
+    "nivel_correcto": 66.7,
+    "confianza_suficiente": 10,
+    "por_clase": {
+      "ambiguo": {
+        "aciertos": 1,
+        "total": 1
+      },
+      "ataque": {
+        "aciertos": 7,
+        "total": 7
+      },
+      "duplicado": {
+        "aciertos": 1,
+        "total": 1
+      },
+      "legitimo": {
+        "aciertos": 1,
+        "total": 3
+      }
+    },
+    "estabilidad": {
+      "AM-01": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-01": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-02": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-03": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-04": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-08": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-09": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-10": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "DU-01": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "LG-01": {
+        "mas_comun": "falso_positivo",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "LG-02": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "LG-04": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      }
+    }
+  },
+  "resultados": [
+    {
+      "id": "AT-01",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.3",
+        "M1": 24,
+        "M2": 9,
+        "M3": true,
+        "M4": 60,
+        "M5_count": 8
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) M3 y M5 en SI: copio un archivo grande y se conecto a 8 equipos por puertos de administracion. (2) No esta en la lista blanca y no tiene historial. (3) No hay otros ataques en la red. (4) confirmado: nada apoya el uso legitimo.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.3",
+        "timestamp": "2026-10-08T04:03:20.115778Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 5742,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 6.0
+    },
+    {
+      "id": "AT-02",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 38,
+        "M2": 17,
+        "M3": true,
+        "M4": 140,
+        "M5_count": 12
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 3,
+      "razonamiento": "(1) M3 y M5 en SI: copio un archivo grande y se conecto a 12 equipos por puertos de administracion. (2) No esta en la lista blanca y no tiene historial. (3) No hay otros ataques en la red. (4) confirmado: nada apoya el uso legitimo.",
+      "acierto": true,
+      "nivel_ok": false,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.5",
+        "timestamp": "2026-10-08T04:03:26.123744Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 2338,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "confirmado",
+        "severidad": "critica",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Ransomware confirmado: copia rapida y conexiones a 12 equipos",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 4.3
+    },
+    {
+      "id": "AT-03",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 46,
+        "M2": 31,
+        "M3": false,
+        "M4": 180,
+        "M5_count": 6
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 3,
+      "razonamiento": "(1) M5 en SI: 6 equipos conectados directamente. (2) No esta en la lista blanca. (3) No hay otros ataques en la red. (4) confirmado: no hay explicacion legitima.",
+      "acierto": true,
+      "nivel_ok": false,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.2",
+        "timestamp": "2026-10-08T04:03:30.472111Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 8048,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 10.0
+    },
+    {
+      "id": "AT-04",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 64,
+        "M2": 48,
+        "M3": false,
+        "M4": 520,
+        "M5_count": 17
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) M5 en SI con 17 equipos y M1, M2 muy por encima del limite. (2) No esta en la lista blanca y no tiene historial. (3) No hay otros ataques en la red. (4) confirmado: nada apoya el uso legitimo.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.4",
+        "timestamp": "2026-10-08T04:03:40.488163Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 7145,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 8.0
+    },
+    {
+      "id": "AT-08",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.3",
+        "M1": 29,
+        "M2": 12,
+        "M3": true,
+        "M4": 90,
+        "M5_count": 9
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 90,
+      "nivel": 3,
+      "razonamiento": "(1) M3 y M5 en SI: copio un archivo grande y se conecto a 9 equipos por puertos de administracion. (2) No esta en la lista blanca. (3) No hay otros ataques en la red. (4) confirmado: nada apoya el uso legitimo.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.20.3",
+        "timestamp": "2026-10-08T04:03:48.501696Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 2471,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "confirmado",
+        "severidad": "critica",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Ransomware confirmado: copia rapida y conexiones a 9 equipos",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 4.5
+    },
+    {
+      "id": "AT-09",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 21,
+        "M2": 6,
+        "M3": false,
+        "M4": 230,
+        "M5_count": 5
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) M5 en SI con 5 equipos y M1, M4 muy por encima del limite. (2) No esta en la lista blanca y no tiene historial. (3) La red esta en ALTO y 10.0.10.3 pudo infectarlo hace 8 minutos. (4) confirmado: las senales fuertes y el contexto de la red apoyan el ataque.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.4",
+        "timestamp": "2026-10-08T04:03:52.983272Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 6773,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 8.0
+    },
+    {
+      "id": "AT-10",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 27,
+        "M2": 9,
+        "M3": true,
+        "M4": 110,
+        "M5_count": 7
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 3,
+      "razonamiento": "(1) M3 y M5 en SI: copio un archivo grande y se conecto a 7 equipos por puertos de administracion. (2) No esta en la lista blanca y no tiene historial. (3) Otros 4 equipos en la red estan en riesgo por un ataque. (4) confirmado: nada apoya el uso legitimo.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.5",
+        "timestamp": "2026-10-08T04:04:00.995678Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 7670,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 8.0
+    },
+    {
+      "id": "LG-01",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.2",
+        "M1": 25,
+        "M2": 16,
+        "M3": true,
+        "M4": 120,
+        "M5_count": 8
+      },
+      "error": "",
+      "veredicto": "falso_positivo",
+      "confianza": 80,
+      "nivel": 2,
+      "razonamiento": "(1) M3 y M5 en SI: copio un archivo grande y se conecto a 8 equipos por puertos de administracion. (2) Esta en la lista blanca como servidor de sitio de Configuration Manager que hace client push a los equipos de la red ADM, lo que explica este trafico. (3) No hay otros ataques en la red. (4) falso_positivo: la lista blanca explica la alerta y nada la contradice.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.20.2",
+        "timestamp": "2026-10-08T04:04:09.009371Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 2918,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "falso_positivo",
+        "severidad": "media",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Probable falsa alarma: servidor de sitio autorizado. Aprobar desbloqueo",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 4.9
+    },
+    {
+      "id": "LG-02",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.4",
+        "M1": 88,
+        "M2": 52,
+        "M3": false,
+        "M4": 640,
+        "M5_count": 34
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 3,
+      "razonamiento": "(1) M5 en SI con 34 equipos y senales debiles muy por encima del limite. (2) Esta en la lista blanca como escaner de vulnerabilidades, pero el motivo registrado no explica el trafico de M5. (3) No hay otros ataques en la red. (4) confirmado: la lista blanca no explica M5 y hay senales de ataque.",
+      "acierto": false,
+      "nivel_ok": false,
+      "confianza_ok": false,
+      "costo": 2,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.20.4",
+        "timestamp": "2026-10-08T04:04:13.938426Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 2126,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "confirmado",
+        "severidad": "critica",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Ransomware confirmado: conexiones directas a 34 equipos",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 4.1,
+      "critico": false
+    },
+    {
+      "id": "LG-04",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 34,
+        "M2": 22,
+        "M3": false,
+        "M4": 150,
+        "M5_count": 22
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) M5 en SI: 22 equipos conectados directamente, limite 5. (2) Esta en la lista blanca como equipo del administrador de sistemas, pero el motivo no explica el trafico de 22 equipos. (3) No hay otros ataques en la red. (4) confirmado: el uso legitimo no tiene una explicacion concreta.",
+      "acierto": false,
+      "nivel_ok": false,
+      "confianza_ok": false,
+      "costo": 2,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.5",
+        "timestamp": "2026-10-08T04:04:18.074657Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 9566,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 10.0,
+      "critico": false
+    },
+    {
+      "id": "AM-01",
+      "ejecucion": "r1",
+      "clase": "ambiguo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 85,
+        "M2": 50,
+        "M3": false,
+        "M4": 610,
+        "M5_count": 30
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) M5 en SI con 30 equipos y M1, M2 muy por encima del limite. (2) No esta en la lista blanca y no tiene historial. (3) No hay otros ataques en la red. (4) confirmado: nada apoya el uso legitimo.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.4",
+        "timestamp": "2026-10-08T04:04:28.091836Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 8735,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 10.0
+    },
+    {
+      "id": "DU-01",
+      "ejecucion": "r1",
+      "clase": "duplicado",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 26,
+        "M2": 10,
+        "M3": true,
+        "M4": 70,
+        "M5_count": 9
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 95,
+      "nivel": 1,
+      "razonamiento": "(1) M3 y M5 en SI: copia rapida y conexiones directas a 9 equipos. (2) No esta en la lista blanca y no tiene historial. (3) Hace 4 minutos se confirmo un ataque con las mismas senales. (4) confirmado: nada apoya el uso legitimo.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.2",
+        "timestamp": "2026-10-08T04:04:38.106441Z",
+        "pipeline": "monolitico",
+        "latencia_ms": 7857,
+        "error": null,
+        "traza": {}
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 8.0
+    }
+  ]
+}

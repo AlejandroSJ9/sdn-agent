@@ -1,0 +1,1201 @@
+{
+  "timestamp": "2026-10-07T23:02:54.578613",
+  "modelo": "meta-llama/llama-3.1-8b-instruct",
+  "pipeline": "etapas",
+  "parametros": {
+    "validar": "False",
+    "conjunto": "desarrollo",
+    "ids": "None",
+    "repeticiones": "1",
+    "variantes": "0",
+    "semilla": "2026",
+    "db": "/tmp/claude-1000/-home-alejandro-Desktop-sdn-agent/24afa11f-77f7-45e2-8854-444ddc825b72/scratchpad/sdn_eval.db",
+    "url": "http://localhost:8081",
+    "pipeline": "etapas",
+    "comparar": "None"
+  },
+  "resumen": {
+    "con_traza": 12,
+    "fallbacks_por_etapa": {
+      "triage": 0,
+      "veredicto": 0,
+      "respuesta": 0
+    },
+    "reintentos_por_etapa": {
+      "triage": 0,
+      "veredicto": 0,
+      "respuesta": 0
+    },
+    "latencia_media_ms": {
+      "total": 7745,
+      "triage": 1461,
+      "veredicto": 2863,
+      "respuesta": 3417
+    },
+    "ejecuciones_con_error_llm": 0,
+    "ejecuciones": 12,
+    "validas": 12,
+    "errores_sistema": 0,
+    "respuestas_provisionales_ryu": 12,
+    "aciertos": 7,
+    "tasa_acierto": 58.3,
+    "costo_total": 9,
+    "costo_medio": 0.75,
+    "fallos_criticos": [
+      "AT-04",
+      "AT-08"
+    ],
+    "nivel_correcto": 91.7,
+    "confianza_suficiente": 7,
+    "por_clase": {
+      "ambiguo": {
+        "aciertos": 1,
+        "total": 1
+      },
+      "ataque": {
+        "aciertos": 2,
+        "total": 7
+      },
+      "duplicado": {
+        "aciertos": 1,
+        "total": 1
+      },
+      "legitimo": {
+        "aciertos": 3,
+        "total": 3
+      }
+    },
+    "estabilidad": {
+      "AM-01": {
+        "mas_comun": "indeterminado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-01": {
+        "mas_comun": "indeterminado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-02": {
+        "mas_comun": "indeterminado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-03": {
+        "mas_comun": "indeterminado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-04": {
+        "mas_comun": "falso_positivo",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-08": {
+        "mas_comun": "falso_positivo",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-09": {
+        "mas_comun": "indeterminado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-10": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "DU-01": {
+        "mas_comun": "ya_contenido",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "LG-01": {
+        "mas_comun": "falso_positivo",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "LG-02": {
+        "mas_comun": "falso_positivo",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "LG-04": {
+        "mas_comun": "falso_positivo",
+        "coinciden": 1,
+        "ejecuciones": 1
+      }
+    }
+  },
+  "resultados": [
+    {
+      "id": "AT-01",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.3",
+        "M1": 24,
+        "M2": 9,
+        "M3": true,
+        "M4": 60,
+        "M5_count": 8
+      },
+      "error": "",
+      "veredicto": "indeterminado",
+      "confianza": 60,
+      "nivel": 2,
+      "razonamiento": "La alerta muestra senales fuertes de M3 y M5, pero el equipo está en la lista blanca. Sin embargo, el número de conexiones nuevas a puertos sensibles en 30 s (24) es ligeramente superior al límite (20). La red está en estado normal y no hay otros equipos senalados en riesgo. El veredicto es indeterminado debido a la falta de evidencia clara de un ataque o uso legitimo.",
+      "acierto": false,
+      "nivel_ok": true,
+      "confianza_ok": false,
+      "costo": 1,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.3",
+        "timestamp": "2026-10-08T04:01:06.391721Z",
+        "pipeline": "etapas",
+        "latencia_ms": 5383,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 1846,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "flujos_switch",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ],
+            "resueltas": [
+              "flujos_switch",
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 721,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.10.3"
+            ],
+            "nivel_autonomia": 2,
+            "acciones_automaticas": [],
+            "acciones_pendientes_aprobacion": [
+              "mantener_bloqueo"
+            ]
+          },
+          "respuesta": {
+            "latencia_ms": 2812,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 6.0,
+      "critico": false
+    },
+    {
+      "id": "AT-02",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 38,
+        "M2": 17,
+        "M3": true,
+        "M4": 140,
+        "M5_count": 12
+      },
+      "error": "",
+      "veredicto": "indeterminado",
+      "confianza": 70,
+      "nivel": 2,
+      "razonamiento": "El equipo 10.0.10.5 tiene senales fuertes de M3 y M5, pero la lista blanca no lo incluye. La red tiene un nivel de alerta normal y no hay otros equipos senalados en riesgo. El historial del equipo es vacío y no hay ataques confirmados en los últimos 30 minutos.",
+      "acierto": false,
+      "nivel_ok": true,
+      "confianza_ok": false,
+      "costo": 1,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.5",
+        "timestamp": "2026-10-08T04:01:12.406763Z",
+        "pipeline": "etapas",
+        "latencia_ms": 10679,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 2486,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "historial_host",
+              "hosts_riesgo",
+              "flujos_switch"
+            ],
+            "resueltas": [
+              "flujos_switch",
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 3673,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.10.1",
+              "10.0.10.5"
+            ],
+            "nivel_autonomia": 2,
+            "acciones_automaticas": [],
+            "acciones_pendientes_aprobacion": [
+              "mantener_bloqueo"
+            ]
+          },
+          "respuesta": {
+            "latencia_ms": 4518,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 12.0,
+      "critico": false
+    },
+    {
+      "id": "AT-03",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 46,
+        "M2": 31,
+        "M3": false,
+        "M4": 180,
+        "M5_count": 6
+      },
+      "error": "",
+      "veredicto": "indeterminado",
+      "confianza": 70,
+      "nivel": 2,
+      "razonamiento": "El equipo 10.0.10.2 tiene conexiones directas a otros equipos (M5) y supera los límites de conexiones nuevas a puertos sensibles (M1 y M2). Sin embargo, la lista blanca no tiene un motivo que explique el trafico y el historial no tiene una alerta anterior. La red tiene un nivel de alerta normal y no hay otros equipos confirmados como ataque en los últimos 30 minutos.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.2",
+        "timestamp": "2026-10-08T04:01:24.425027Z",
+        "pipeline": "etapas",
+        "latencia_ms": 8037,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 2129,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "flujos_switch",
+              "hosts_riesgo"
+            ],
+            "resueltas": [
+              "flujos_switch",
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 4078,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.10.1",
+              "10.0.10.2"
+            ],
+            "nivel_autonomia": 2,
+            "acciones_automaticas": [],
+            "acciones_pendientes_aprobacion": [
+              "mantener_bloqueo"
+            ]
+          },
+          "respuesta": {
+            "latencia_ms": 1826,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 10.0
+    },
+    {
+      "id": "AT-04",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 64,
+        "M2": 48,
+        "M3": false,
+        "M4": 520,
+        "M5_count": 17
+      },
+      "error": "",
+      "veredicto": "falso_positivo",
+      "confianza": 80,
+      "nivel": 3,
+      "razonamiento": "El equipo 10.0.10.4 está en la lista blanca, lo que sugiere que su comportamiento es legítimo. Además, no hay otros equipos senalados en riesgo ni ataque confirmado en la red. Sin embargo, el flujo de datos del switch muestra conexiones directas a otros equipos, lo que podría ser un indicio de un ataque. Sin embargo, esto no es suficiente para confirmar un ataque.",
+      "acierto": false,
+      "nivel_ok": false,
+      "confianza_ok": false,
+      "costo": 3,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.4",
+        "timestamp": "2026-10-08T04:01:34.441532Z",
+        "pipeline": "etapas",
+        "latencia_ms": 11646,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 1680,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "flujos_switch",
+              "hosts_riesgo"
+            ],
+            "resueltas": [
+              "flujos_switch",
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 4879,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.10.1",
+              "10.0.10.2",
+              "10.0.10.3",
+              "10.0.10.4",
+              "10.0.10.5"
+            ],
+            "nivel_autonomia": 3,
+            "acciones_automaticas": [],
+            "acciones_pendientes_aprobacion": []
+          },
+          "respuesta": {
+            "latencia_ms": 5083,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 12.0,
+      "critico": true
+    },
+    {
+      "id": "AT-08",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.3",
+        "M1": 29,
+        "M2": 12,
+        "M3": true,
+        "M4": 90,
+        "M5_count": 9
+      },
+      "error": "",
+      "veredicto": "falso_positivo",
+      "confianza": 80,
+      "nivel": 3,
+      "razonamiento": "El equipo 10.0.20.3 esta en la lista blanca, pero no hay un motivo claro para el trafico. Sin embargo, no hay ataques activos en la red que lo contradigan. El equipo 10.0.20.3 ya estaba bloqueado por una alerta anterior.",
+      "acierto": false,
+      "nivel_ok": true,
+      "confianza_ok": false,
+      "costo": 3,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.20.3",
+        "timestamp": "2026-10-08T04:01:46.460874Z",
+        "pipeline": "etapas",
+        "latencia_ms": 10518,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 1713,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "flujos_switch",
+              "hosts_riesgo"
+            ],
+            "resueltas": [
+              "flujos_switch",
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 4399,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.10.1",
+              "10.0.10.2",
+              "10.0.10.3",
+              "10.0.10.4",
+              "10.0.10.5",
+              "10.0.20.3"
+            ],
+            "nivel_autonomia": 3,
+            "acciones_automaticas": [],
+            "acciones_pendientes_aprobacion": []
+          },
+          "respuesta": {
+            "latencia_ms": 4403,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 12.0,
+      "critico": true
+    },
+    {
+      "id": "AT-09",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 21,
+        "M2": 6,
+        "M3": false,
+        "M4": 230,
+        "M5_count": 5
+      },
+      "error": "",
+      "veredicto": "indeterminado",
+      "confianza": 60,
+      "nivel": 2,
+      "razonamiento": "El equipo 10.0.10.4 tiene senales fuertes de M5, pero la lista blanca y el historial no tienen datos que expliquen el trafico. La red tiene un nivel de alerta alto y otro equipo (10.0.10.3) fue senalado en riesgo hace 8 minutos, lo que sugiere que hay un ataque en curso. Sin embargo, las senales debiles (M1 y M4) no son suficientes para confirmar el ataque.",
+      "acierto": false,
+      "nivel_ok": true,
+      "confianza_ok": false,
+      "costo": 1,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.4",
+        "timestamp": "2026-10-08T04:01:58.479020Z",
+        "pipeline": "etapas",
+        "latencia_ms": 8431,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 549,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "flujos_switch",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ],
+            "resueltas": [
+              "flujos_switch",
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 2427,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.10.3",
+              "10.0.10.4"
+            ],
+            "nivel_autonomia": 2,
+            "acciones_automaticas": [],
+            "acciones_pendientes_aprobacion": [
+              "mantener_bloqueo"
+            ]
+          },
+          "respuesta": {
+            "latencia_ms": 5451,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 10.0,
+      "critico": false
+    },
+    {
+      "id": "AT-10",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 27,
+        "M2": 9,
+        "M3": true,
+        "M4": 110,
+        "M5_count": 7
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": 90,
+      "nivel": 3,
+      "razonamiento": "El equipo 10.0.10.5 tiene senales fuertes de M3 y M5, y el nivel de alerta de la red es CRITICO. Además, hay 4 equipos confirmados como ataque en los últimos 30 minutos. El uso legitimo no tiene explicación concreta.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.5",
+        "timestamp": "2026-10-08T04:02:08.496252Z",
+        "pipeline": "etapas",
+        "latencia_ms": 10136,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 1077,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "flujos_switch",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ],
+            "resueltas": [
+              "flujos_switch",
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 4300,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.10.1",
+              "10.0.10.2",
+              "10.0.10.3",
+              "10.0.10.4",
+              "10.0.10.5"
+            ],
+            "nivel_autonomia": 3,
+            "acciones_automaticas": [],
+            "acciones_pendientes_aprobacion": []
+          },
+          "respuesta": {
+            "latencia_ms": 4756,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 12.0
+    },
+    {
+      "id": "LG-01",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.2",
+        "M1": 25,
+        "M2": 16,
+        "M3": true,
+        "M4": 120,
+        "M5_count": 8
+      },
+      "error": "",
+      "veredicto": "falso_positivo",
+      "confianza": 80,
+      "nivel": 2,
+      "razonamiento": "El equipo 10.0.20.2 esta en la lista blanca con un motivo registrado de uso legitimo (Servidor de sitio de Configuration Manager (SCCM)). Además, el historial del equipo no muestra alertas anteriores y no estaba bloqueado anteriormente. Sin embargo, las senales fuertes (M3 y M5) sugieren un ataque, pero no hay suficientes datos para confirmarlo.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.20.2",
+        "timestamp": "2026-10-08T04:02:20.520808Z",
+        "pipeline": "etapas",
+        "latencia_ms": 4495,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 1037,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "flujos_switch",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ],
+            "resueltas": [
+              "flujos_switch",
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 1600,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.10.1",
+              "10.0.20.2"
+            ],
+            "nivel_autonomia": 2,
+            "acciones_automaticas": [],
+            "acciones_pendientes_aprobacion": [
+              "desbloquear_host"
+            ]
+          },
+          "respuesta": {
+            "latencia_ms": 1853,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 6.0
+    },
+    {
+      "id": "LG-02",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.4",
+        "M1": 88,
+        "M2": 52,
+        "M3": false,
+        "M4": 640,
+        "M5_count": 34
+      },
+      "error": "",
+      "veredicto": "falso_positivo",
+      "confianza": 80,
+      "nivel": 2,
+      "razonamiento": "El equipo 10.0.20.4 está en la lista blanca con un motivo registrado de escaneo de vulnerabilidades con Tenable Nessus, lo que sugiere que el tráfico de puertos sensibles es legítimo. Además, no hay otros equipos senalados en riesgo ni atacados en los últimos 30 minutos, y el nivel de alerta de la red es normal.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.20.4",
+        "timestamp": "2026-10-08T04:02:26.530599Z",
+        "pipeline": "etapas",
+        "latencia_ms": 4712,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 924,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "flujos_switch",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ],
+            "resueltas": [
+              "flujos_switch",
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 1615,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.20.4"
+            ],
+            "nivel_autonomia": 2,
+            "acciones_automaticas": [],
+            "acciones_pendientes_aprobacion": [
+              "desbloquear_host"
+            ]
+          },
+          "respuesta": {
+            "latencia_ms": 2167,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 6.0
+    },
+    {
+      "id": "LG-04",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 34,
+        "M2": 22,
+        "M3": false,
+        "M4": 150,
+        "M5_count": 22
+      },
+      "error": "",
+      "veredicto": "falso_positivo",
+      "confianza": 90,
+      "nivel": 2,
+      "razonamiento": "El equipo está en la lista blanca con un motivo registrado de 'Equipo del administrador de sistemas; tareas de inventario con PowerShell Remoting'. Además, no hay otros equipos senalados en riesgo y no hay ataques confirmados en la red.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.5",
+        "timestamp": "2026-10-08T04:02:32.539397Z",
+        "pipeline": "etapas",
+        "latencia_ms": 7141,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 1385,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "flujos_switch",
+              "hosts_riesgo"
+            ],
+            "resueltas": [
+              "flujos_switch",
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 3619,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.10.5"
+            ],
+            "nivel_autonomia": 2,
+            "acciones_automaticas": [],
+            "acciones_pendientes_aprobacion": [
+              "desbloquear_host"
+            ]
+          },
+          "respuesta": {
+            "latencia_ms": 2132,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 8.0
+    },
+    {
+      "id": "AM-01",
+      "ejecucion": "r1",
+      "clase": "ambiguo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 85,
+        "M2": 50,
+        "M3": false,
+        "M4": 610,
+        "M5_count": 30
+      },
+      "error": "",
+      "veredicto": "indeterminado",
+      "confianza": 60,
+      "nivel": 2,
+      "razonamiento": "El equipo tiene senales fuertes de M5, pero la lista blanca y el historial no tienen datos que expliquen el trafico. La red no tiene ataques activos confirmados y el nivel de alerta es normal.",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.4",
+        "timestamp": "2026-10-08T04:02:40.552709Z",
+        "pipeline": "etapas",
+        "latencia_ms": 5236,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 1618,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "historial_host",
+              "hosts_riesgo"
+            ],
+            "resueltas": [
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 1602,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": [
+              "hosts_en_riesgo: 10.0.10.4 es el host de origen, descartada"
+            ]
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.10.4"
+            ],
+            "nivel_autonomia": 2,
+            "acciones_automaticas": [],
+            "acciones_pendientes_aprobacion": [
+              "mantener_bloqueo"
+            ]
+          },
+          "respuesta": {
+            "latencia_ms": 2013,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 6.0
+    },
+    {
+      "id": "DU-01",
+      "ejecucion": "r1",
+      "clase": "duplicado",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 26,
+        "M2": 10,
+        "M3": true,
+        "M4": 70,
+        "M5_count": 9
+      },
+      "error": "",
+      "veredicto": "ya_contenido",
+      "confianza": 100,
+      "nivel": 1,
+      "razonamiento": "Esta alerta repite la de un ataque confirmado hace menos de 15 minutos, con las mismas senales (M1, M3, M5).",
+      "acierto": true,
+      "nivel_ok": true,
+      "confianza_ok": true,
+      "costo": 0,
+      "error_llm": null,
+      "traza": {
+        "host": "10.0.10.2",
+        "timestamp": "2026-10-08T04:02:46.562976Z",
+        "pipeline": "etapas",
+        "latencia_ms": 6530,
+        "error": null,
+        "traza": {
+          "triage": {
+            "latencia_ms": 1087,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "consultas": {
+            "pedidas": [
+              "flujos_switch",
+              "hosts_riesgo"
+            ],
+            "resueltas": [
+              "flujos_switch",
+              "historial_host",
+              "hosts_bloqueados",
+              "hosts_riesgo"
+            ]
+          },
+          "veredicto": {
+            "latencia_ms": 1446,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          },
+          "reglas": {
+            "equipos_afectados": [
+              "10.0.10.1",
+              "10.0.10.2"
+            ],
+            "nivel_autonomia": 1,
+            "acciones_automaticas": [
+              "mantener_bloqueo"
+            ],
+            "acciones_pendientes_aprobacion": []
+          },
+          "respuesta": {
+            "latencia_ms": 3993,
+            "reintento": false,
+            "fallback": false,
+            "error": null,
+            "avisos": []
+          }
+        }
+      },
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "Analisis del agente en curso: se mantiene el bloqueo hasta el veredicto final.",
+        "alertas": [],
+        "provisional": true
+      },
+      "tiempo_s": 8.0
+    }
+  ]
+}
