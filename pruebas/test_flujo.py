@@ -649,7 +649,8 @@ def ejecutar_caso(caso: CasoPrueba) -> ResultadoPrueba:
     try:
         # Enviar alerta al agente
         resp = post(f'{AGENTE_URL}/alert', caso.payload, timeout=10)
-        if not resp or resp.get('status') != 'recibido':
+        # /alert responde a Ryu con su contrato: veredicto (o provisional)
+        if not resp or 'veredicto' not in resp:
             resultado.error = f'El agente no aceptó el payload: {resp}'
             resultado.tiempo_ms = (time.time() - inicio) * 1000
             return resultado

@@ -293,9 +293,11 @@ def ejecutar(caso: dict, alerta: dict, db: Path, etiqueta: str) -> dict:
 
     inicio = time.time()
     resp = http('POST', f'{AGENTE_URL}/alert', payload)
-    if not isinstance(resp, dict) or resp.get('status') != 'recibido':
+    # /alert responde con el contrato de Ryu-IA: veredicto final o provisional
+    if not isinstance(resp, dict) or 'veredicto' not in resp:
         r['error'] = f'El agente no acepto la alerta: {resp}'
         return r
+    r['respuesta_ryu'] = resp
 
     inc = esperar_incidente(payload['host_origen'], ts, TIMEOUT)
     r['tiempo_s'] = round(time.time() - inicio, 1)
@@ -338,6 +340,10 @@ def resumir(resultados: list[dict]) -> dict:
         'ejecuciones':           len(resultados),
         'validas':               n,
         'errores_sistema':       len(resultados) - n,
+        # Ryu solo ejecuta lo que llega en la respuesta: las provisionales
+        # significan que el veredicto del LLM no llego a tiempo
+        'respuestas_provisionales_ryu': sum(1 for r in resultados
+                                            if r.get('respuesta_ryu', {}).get('provisional')),
         'aciertos':              sum(r['acierto'] for r in validos),
         'tasa_acierto':          round(100 * sum(r['acierto'] for r in validos) / n, 1) if n else 0,
         'costo_total':           sum(r['costo'] for r in validos),
@@ -371,6 +377,7 @@ def imprimir_resumen(res: dict) -> None:
     print(f'  Ejecuciones validas:  {res["validas"]}/{res["ejecuciones"]} '
           f'(errores de sistema: {res["errores_sistema"]})')
     print(f'  Aciertos:             {res["aciertos"]}/{res["validas"]} ({res["tasa_acierto"]}%)')
+    print(f'  Respuestas provisionales a Ryu: {res["respuestas_provisionales_ryu"]}/{res["ejecuciones"]}')
     print(f'  Costo total / medio:  {res["costo_total"]} / {res["costo_medio"]}')
     color = FAIL if res['fallos_criticos'] else OK
     print(f'  Fallos criticos:      {color}{res["fallos_criticos"] or "ninguno"}{END}')

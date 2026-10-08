@@ -5,17 +5,32 @@ Solo responsabilidad de este archivo: recibir, validar y despachar.
 La logica de procesamiento vive en services/agente.py.
 """
 
+import asyncio
 import logging
 from typing import Optional
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter
 from pydantic import BaseModel
 
-from services.agente import procesar_alerta
+from config import PLAZO_RESPUESTA_RYU_SEC
+from services.agente import (
+    procesar_alerta, respuesta_para_ryu, RESPUESTA_PROVISIONAL_RYU,
+)
 from api.websocket import ws_manager
 
 logger = logging.getLogger('AgenteSDN.routes.alertas')
 
 router = APIRouter(tags=['Alertas'])
+
+# Referencias a los analisis que siguen corriendo despues de responder a Ryu,
+# para que el recolector de basura no los cancele
+_analisis_en_curso: set[asyncio.Task] = set()
+
+
+def _al_terminar(tarea: asyncio.Task) -> None:
+    _analisis_en_curso.discard(tarea)
+    # Marca la excepcion como leida: procesar_alerta ya la registro en el log
+    if not tarea.cancelled():
+        tarea.exception()
 
 
 # --- Modelos de entrada -------------------------------------------------------
@@ -39,11 +54,13 @@ class AlertaRyu(BaseModel):
 # --- Endpoints ----------------------------------------------------------------
 
 @router.post('/alert', summary='Recibe alerta CRITICA del controlador Ryu')
-async def recibir_alerta(alerta: AlertaRyu, background_tasks: BackgroundTasks):
+async def recibir_alerta(alerta: AlertaRyu):
     """
-    Ryu llama a este endpoint cuando un host supera el puntaje critico.
-    Responde inmediatamente con 200 para no bloquear el event loop de Ryu,
-    y procesa el incidente en background.
+    Ryu llama a este endpoint cuando un host supera el puntaje critico y
+    espera la respuesta como maximo AGENT_TIMEOUT segundos.
+    Si el analisis termina antes de PLAZO_RESPUESTA_RYU_SEC se responde el
+    veredicto final; si no, un veredicto provisional (mantener bloqueo) y
+    el analisis sigue en segundo plano hasta registrarse en la DB.
     """
     payload = alerta.model_dump()
     logger.info(
@@ -59,15 +76,18 @@ async def recibir_alerta(alerta: AlertaRyu, background_tasks: BackgroundTasks):
         'ts':      payload['timestamp'],
     })
 
-    # Procesar en background con acceso al ws_manager
-    background_tasks.add_task(
-        procesar_alerta,
-        payload,
-        ws_manager.emit_sync,
-    )
+    tarea = asyncio.create_task(procesar_alerta(payload, ws_manager.emit_sync))
+    _analisis_en_curso.add(tarea)
+    tarea.add_done_callback(_al_terminar)
 
-    return {
-        'status': 'recibido',
-        'host':   payload['host_origen'],
-        'msg':    'Procesando en background',
-    }
+    try:
+        respuesta = await asyncio.wait_for(asyncio.shield(tarea), PLAZO_RESPUESTA_RYU_SEC)
+    except asyncio.TimeoutError:
+        logger.info(f'[/alert] Plazo de {PLAZO_RESPUESTA_RYU_SEC}s agotado para '
+                    f'{payload["host_origen"]} -- respuesta provisional')
+        return dict(RESPUESTA_PROVISIONAL_RYU)
+    except Exception:
+        # procesar_alerta ya registro el error en el log
+        return dict(RESPUESTA_PROVISIONAL_RYU)
+
+    return respuesta_para_ryu(respuesta)

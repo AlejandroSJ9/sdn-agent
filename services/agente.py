@@ -16,6 +16,7 @@ import logging
 from datetime import datetime
 from typing import Callable
 
+from config import TELEGRAM_ENABLED
 from services.llm import analizar_incidente
 from db.repository import (
     registrar_incidente,
@@ -31,6 +32,21 @@ logger = logging.getLogger('AgenteSDN.agente')
 _emit_ws: Callable | None = None
 
 PUERTOS_CRITICOS = [445, 135, 3389, 5985, 139]
+
+# Contrato de respuesta de Ryu-IA (_ejecutar_respuesta_agente)
+VEREDICTOS_RYU  = {'confirmado', 'falso_positivo', 'indeterminado'}
+SEVERIDADES_RYU = {'critica', 'alta', 'media'}
+
+# Respuesta para Ryu cuando el LLM no termina dentro del plazo
+RESPUESTA_PROVISIONAL_RYU = {
+    'veredicto':        'indeterminado',
+    'severidad':        'alta',
+    'acciones_ryu':     ['mantener_bloqueo'],
+    'mensaje_operador': 'Analisis del agente en curso: se mantiene el bloqueo '
+                        'hasta el veredicto final.',
+    'alertas':          [],
+    'provisional':      True,
+}
 
 
 def set_ws_emitter(fn: Callable) -> None:
@@ -52,6 +68,48 @@ def _dpid_from_payload(payload: dict) -> int:
         return int(dpid_str, 16) if dpid_str.startswith('0x') else int(dpid_str)
     except (ValueError, TypeError):
         return 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Respuesta a Ryu-IA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def respuesta_para_ryu(respuesta: dict) -> dict:
+    """
+    Traduce el veredicto del LLM al JSON que espera Ryu-IA.
+
+    acciones_ryu solo lleva lo que el agente ejecuta sin aprobacion
+    (mismas condiciones que _ejecutar_nivel_1). Lo que espera al operador
+    por Telegram no se envia: Ryu lo ejecutaria al instante y se saltaria
+    la aprobacion humana.
+    """
+    veredicto = respuesta.get('veredicto', 'indeterminado')
+    if veredicto == 'ya_contenido':
+        veredicto = 'confirmado'   # Ryu no conoce ya_contenido; el bloqueo sigue
+    elif veredicto not in VEREDICTOS_RYU:
+        veredicto = 'indeterminado'
+
+    severidad = respuesta.get('severidad')
+    if severidad not in SEVERIDADES_RYU:
+        severidad = 'alta'
+
+    # Ryu solo desbloquea con veredicto falso_positivo
+    desbloqueo_automatico = (
+        respuesta.get('nivel_autonomia') == 1
+        and veredicto == 'falso_positivo'
+        and 'desbloquear_host' in respuesta.get('acciones_automaticas', [])
+        and respuesta.get('confianza', 0) >= 85
+    )
+
+    mensaje = respuesta.get('mensaje_telegram', '')
+    return {
+        'veredicto':        veredicto,
+        'severidad':        severidad,
+        'acciones_ryu':     ['desbloquear'] if desbloqueo_automatico else ['mantener_bloqueo'],
+        'mensaje_operador': mensaje,
+        'alertas':          ['telegram'] if TELEGRAM_ENABLED and mensaje else [],
+        'provisional':      False,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

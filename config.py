@@ -67,6 +67,11 @@ RYU_TIMEOUT  = int(os.getenv('RYU_TIMEOUT', '5'))
 MAX_TURNOS_LLM        = int(os.getenv('MAX_TURNOS_LLM', '3'))
 HITL_TIMEOUT_SEGUNDOS = int(os.getenv('HITL_TIMEOUT_SEC', '600'))
 
+# Ryu-IA espera la respuesta de /alert como maximo AGENT_TIMEOUT = 5 s.
+# Si el LLM no termina en este plazo se responde un veredicto provisional
+# (mantener bloqueo) y el analisis sigue en segundo plano.
+PLAZO_RESPUESTA_RYU_SEC = float(os.getenv('PLAZO_RESPUESTA_RYU_SEC', '4.0'))
+
 # -- Base de datos ------------------------------------------------------------
 DB_FILE = os.getenv('DB_FILE', 'sdn_context.db')
 
