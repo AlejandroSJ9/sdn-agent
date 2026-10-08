@@ -393,7 +393,8 @@ def imprimir_resumen(res: dict) -> None:
     print(f'  Costo total / medio:  {res["costo_total"]} / {res["costo_medio"]}')
     color = FAIL if res['fallos_criticos'] else OK
     print(f'  Fallos criticos:      {color}{res["fallos_criticos"] or "ninguno"}{END}')
-    print(f'  Nivel correcto:       {res["nivel_correcto"]}%')
+    if res['nivel_correcto'] != '-':
+        print(f'  Nivel correcto:       {res["nivel_correcto"]}%')
     print(f'\n  {BOLD}Por clase:{END}')
     for clase, v in res['por_clase'].items():
         print(f'    {clase:10} {v["aciertos"]}/{v["total"]}')

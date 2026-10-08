@@ -1,0 +1,521 @@
+{
+  "timestamp": "2026-10-07T23:54:30.769220",
+  "modelo": "meta-llama/llama-3.1-8b-instruct",
+  "pipeline": "mvp",
+  "parametros": {
+    "validar": "False",
+    "conjunto": "desarrollo",
+    "ids": "None",
+    "repeticiones": "1",
+    "variantes": "0",
+    "semilla": "2026",
+    "db": "/tmp/claude-1000/-home-alejandro-Desktop-sdn-agent/24afa11f-77f7-45e2-8854-444ddc825b72/scratchpad/escenarios_main.db",
+    "url": "http://localhost:8081",
+    "pipeline": "mvp",
+    "comparar": "None"
+  },
+  "resumen": {
+    "ejecuciones": 12,
+    "validas": 12,
+    "errores_sistema": 0,
+    "respuestas_provisionales_ryu": 0,
+    "aciertos": 11,
+    "tasa_acierto": 91.7,
+    "costo_total": 1,
+    "costo_medio": 0.08,
+    "fallos_criticos": [],
+    "nivel_correcto": "-",
+    "confianza_suficiente": 1,
+    "por_clase": {
+      "ambiguo": {
+        "aciertos": 1,
+        "total": 1
+      },
+      "ataque": {
+        "aciertos": 7,
+        "total": 7
+      },
+      "duplicado": {
+        "aciertos": 0,
+        "total": 1
+      },
+      "legitimo": {
+        "aciertos": 3,
+        "total": 3
+      }
+    },
+    "estabilidad": {
+      "AM-01": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-01": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-02": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-03": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-04": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-08": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-09": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "AT-10": {
+        "mas_comun": "confirmado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "DU-01": {
+        "mas_comun": "indeterminado",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "LG-01": {
+        "mas_comun": "falso_positivo",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "LG-02": {
+        "mas_comun": "falso_positivo",
+        "coinciden": 1,
+        "ejecuciones": 1
+      },
+      "LG-04": {
+        "mas_comun": "falso_positivo",
+        "coinciden": 1,
+        "ejecuciones": 1
+      }
+    }
+  },
+  "resultados": [
+    {
+      "id": "AT-01",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.3",
+        "M1": 24,
+        "M2": 9,
+        "M3": true,
+        "M4": 60,
+        "M5_count": 8
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "El equipo supero los limites de conexiones nuevas a puertos sensibles y equipos contactados, y realizo una copia de archivo grande y rapida por SMB, y contactos por puertos de administracion, sin que la lista blanca o alertas anteriores expliquen este trafico.",
+      "acierto": true,
+      "nivel_ok": null,
+      "confianza_ok": false,
+      "costo": 0,
+      "respuesta_ryu": {
+        "veredicto": "confirmado",
+        "severidad": "critica",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "🚨 <b>Ataque confirmado</b> -- equipo <code>10.0.10.3</code>\nEl equipo supero los limites de conexiones nuevas a puertos sensibles y equipos contactados, y realizo una copia de archivo grande y rapida por SMB, y contactos por puertos de administracion, sin que la lista blanca o alertas anteriores expliquen este trafico.\nEl equipo sigue bloqueado.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 3.7
+    },
+    {
+      "id": "AT-02",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 38,
+        "M2": 17,
+        "M3": true,
+        "M4": 140,
+        "M5_count": 12
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "El equipo ha superado varios limites de senales de ataque (M1, M2, M3, M5) y no hay ninguna lista blanca o alerta anterior que explique este trafico.",
+      "acierto": true,
+      "nivel_ok": null,
+      "confianza_ok": false,
+      "costo": 0,
+      "respuesta_ryu": {
+        "veredicto": "confirmado",
+        "severidad": "critica",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "🚨 <b>Ataque confirmado</b> -- equipo <code>10.0.10.5</code>\nEl equipo ha superado varios limites de senales de ataque (M1, M2, M3, M5) y no hay ninguna lista blanca o alerta anterior que explique este trafico.\nEl equipo sigue bloqueado.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 3.2
+    },
+    {
+      "id": "AT-03",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 46,
+        "M2": 31,
+        "M3": false,
+        "M4": 180,
+        "M5_count": 6
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "El equipo supero los limites de conexiones nuevas a puertos sensibles y equipos contactados en 30 segundos, y contactó 6 equipos por puertos de administración, lo que es típico de un ataque de ransomware.",
+      "acierto": true,
+      "nivel_ok": null,
+      "confianza_ok": false,
+      "costo": 0,
+      "respuesta_ryu": {
+        "veredicto": "confirmado",
+        "severidad": "critica",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "🚨 <b>Ataque confirmado</b> -- equipo <code>10.0.10.2</code>\nEl equipo supero los limites de conexiones nuevas a puertos sensibles y equipos contactados en 30 segundos, y contactó 6 equipos por puertos de administración, lo que es típico de un ataque de ransomware.\nEl equipo sigue bloqueado.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 3.4
+    },
+    {
+      "id": "AT-04",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 64,
+        "M2": 48,
+        "M3": false,
+        "M4": 520,
+        "M5_count": 17
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "El equipo supero los limites en varias senales, incluyendo M1, M2, M4 y M5, sin ninguna lista blanca o alerta anterior que lo explique.",
+      "acierto": true,
+      "nivel_ok": null,
+      "confianza_ok": false,
+      "costo": 0,
+      "respuesta_ryu": {
+        "veredicto": "confirmado",
+        "severidad": "critica",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "🚨 <b>Ataque confirmado</b> -- equipo <code>10.0.10.4</code>\nEl equipo supero los limites en varias senales, incluyendo M1, M2, M4 y M5, sin ninguna lista blanca o alerta anterior que lo explique.\nEl equipo sigue bloqueado.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 3.5
+    },
+    {
+      "id": "AT-08",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.3",
+        "M1": 29,
+        "M2": 12,
+        "M3": true,
+        "M4": 90,
+        "M5_count": 9
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "El equipo ha superado los limites de conexiones nuevas a puertos sensibles, equipos contactados y mensajes al controlador, y ha realizado una copia de archivo grande y rápida por SMB, y ha contactado equipos por puertos de administración, sin ninguna explicación legitima.",
+      "acierto": true,
+      "nivel_ok": null,
+      "confianza_ok": false,
+      "costo": 0,
+      "respuesta_ryu": {
+        "veredicto": "confirmado",
+        "severidad": "critica",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "🚨 <b>Ataque confirmado</b> -- equipo <code>10.0.20.3</code>\nEl equipo ha superado los limites de conexiones nuevas a puertos sensibles, equipos contactados y mensajes al controlador, y ha realizado una copia de archivo grande y rápida por SMB, y ha contactado equipos por puertos de administración, sin ninguna explicación legitima.\nEl equipo sigue bloqueado.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 3.5
+    },
+    {
+      "id": "AT-09",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 21,
+        "M2": 6,
+        "M3": false,
+        "M4": 230,
+        "M5_count": 5
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "Se detectaron senales fuertes de ataque (M1, M2, M4, M5) sin explicacion legitima.",
+      "acierto": true,
+      "nivel_ok": null,
+      "confianza_ok": false,
+      "costo": 0,
+      "respuesta_ryu": {
+        "veredicto": "confirmado",
+        "severidad": "critica",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "🚨 <b>Ataque confirmado</b> -- equipo <code>10.0.10.4</code>\nSe detectaron senales fuertes de ataque (M1, M2, M4, M5) sin explicacion legitima.\nEl equipo sigue bloqueado.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 3.1
+    },
+    {
+      "id": "AT-10",
+      "ejecucion": "r1",
+      "clase": "ataque",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 27,
+        "M2": 9,
+        "M3": true,
+        "M4": 110,
+        "M5_count": 7
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "El equipo está generando un alto volumen de conexiones y mensajes, lo que sugiere un ataque de ransomware. La señal M3 es típica de este tipo de ataques y no hay una lista blanca o alertas anteriores que lo expliquen como legítimo.",
+      "acierto": true,
+      "nivel_ok": null,
+      "confianza_ok": false,
+      "costo": 0,
+      "respuesta_ryu": {
+        "veredicto": "confirmado",
+        "severidad": "critica",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "🚨 <b>Ataque confirmado</b> -- equipo <code>10.0.10.5</code>\nEl equipo está generando un alto volumen de conexiones y mensajes, lo que sugiere un ataque de ransomware. La señal M3 es típica de este tipo de ataques y no hay una lista blanca o alertas anteriores que lo expliquen como legítimo.\nEl equipo sigue bloqueado.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 5.0
+    },
+    {
+      "id": "LG-01",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.2",
+        "M1": 25,
+        "M2": 16,
+        "M3": true,
+        "M4": 120,
+        "M5_count": 8
+      },
+      "error": "",
+      "veredicto": "falso_positivo",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "El equipo se encuentra en la lista blanca con un motivo legitimo, que es un servidor de SCCM, y no hay alertas anteriores.",
+      "acierto": true,
+      "nivel_ok": null,
+      "confianza_ok": false,
+      "costo": 0,
+      "respuesta_ryu": {
+        "veredicto": "falso_positivo",
+        "severidad": "media",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "✅ <b>Probable falso positivo</b> -- equipo <code>10.0.20.2</code>\nEl equipo se encuentra en la lista blanca con un motivo legitimo, que es un servidor de SCCM, y no hay alertas anteriores.\nEl equipo sigue bloqueado. Si se confirma que es legitimo, desbloquearlo manualmente.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 3.1
+    },
+    {
+      "id": "LG-02",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.20.4",
+        "M1": 88,
+        "M2": 52,
+        "M3": false,
+        "M4": 640,
+        "M5_count": 34
+      },
+      "error": "",
+      "veredicto": "falso_positivo",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "La lista blanca con motivo de escaneo autenticado semanal apoya la tarea legitima.",
+      "acierto": true,
+      "nivel_ok": null,
+      "confianza_ok": false,
+      "costo": 0,
+      "respuesta_ryu": {
+        "veredicto": "falso_positivo",
+        "severidad": "media",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "✅ <b>Probable falso positivo</b> -- equipo <code>10.0.20.4</code>\nLa lista blanca con motivo de escaneo autenticado semanal apoya la tarea legitima.\nEl equipo sigue bloqueado. Si se confirma que es legitimo, desbloquearlo manualmente.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 3.7
+    },
+    {
+      "id": "LG-04",
+      "ejecucion": "r1",
+      "clase": "legitimo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.5",
+        "M1": 34,
+        "M2": 22,
+        "M3": false,
+        "M4": 150,
+        "M5_count": 22
+      },
+      "error": "",
+      "veredicto": "falso_positivo",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "La lista blanca con motivo de 'Equipo del administrador de sistemas; tareas de inventario con PowerShell Remoting' explica este trafico como legitimo.",
+      "acierto": true,
+      "nivel_ok": null,
+      "confianza_ok": false,
+      "costo": 0,
+      "respuesta_ryu": {
+        "veredicto": "falso_positivo",
+        "severidad": "media",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "✅ <b>Probable falso positivo</b> -- equipo <code>10.0.10.5</code>\nLa lista blanca con motivo de &#x27;Equipo del administrador de sistemas; tareas de inventario con PowerShell Remoting&#x27; explica este trafico como legitimo.\nEl equipo sigue bloqueado. Si se confirma que es legitimo, desbloquearlo manualmente.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 3.6
+    },
+    {
+      "id": "AM-01",
+      "ejecucion": "r1",
+      "clase": "ambiguo",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.4",
+        "M1": 85,
+        "M2": 50,
+        "M3": false,
+        "M4": 610,
+        "M5_count": 30
+      },
+      "error": "",
+      "veredicto": "confirmado",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "Se han superado los límites de conexiones nuevas a puertos sensibles, equipos contactados y mensajes al controlador, sin que se explique este trafico como legitimo por la lista blanca o alertas anteriores.",
+      "acierto": true,
+      "nivel_ok": null,
+      "confianza_ok": true,
+      "costo": 0,
+      "respuesta_ryu": {
+        "veredicto": "confirmado",
+        "severidad": "critica",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "🚨 <b>Ataque confirmado</b> -- equipo <code>10.0.10.4</code>\nSe han superado los límites de conexiones nuevas a puertos sensibles, equipos contactados y mensajes al controlador, sin que se explique este trafico como legitimo por la lista blanca o alertas anteriores.\nEl equipo sigue bloqueado.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 4.4
+    },
+    {
+      "id": "DU-01",
+      "ejecucion": "r1",
+      "clase": "duplicado",
+      "conjunto": "desarrollo",
+      "alerta": {
+        "host": "10.0.10.2",
+        "M1": 26,
+        "M2": 10,
+        "M3": true,
+        "M4": 70,
+        "M5_count": 9
+      },
+      "error": "",
+      "veredicto": "indeterminado",
+      "confianza": null,
+      "nivel": null,
+      "razonamiento": "La lista blanca está vacía, pero hay una alerta anterior similar que fue resuelta como falso positivo, lo que sugiere que este tráfico es legítimo. (El LLM dijo falso_positivo, pero el equipo no esta en la lista blanca ni tiene alertas anteriores que lo respalden.)",
+      "acierto": false,
+      "nivel_ok": null,
+      "confianza_ok": false,
+      "costo": 1,
+      "respuesta_ryu": {
+        "veredicto": "indeterminado",
+        "severidad": "alta",
+        "acciones_ryu": [
+          "mantener_bloqueo"
+        ],
+        "mensaje_operador": "⚠️ <b>Caso dudoso</b> -- equipo <code>10.0.10.2</code>\nLa lista blanca está vacía, pero hay una alerta anterior similar que fue resuelta como falso positivo, lo que sugiere que este tráfico es legítimo. (El LLM dijo falso_positivo, pero el equipo no esta en la lista blanca ni tiene alertas anteriores que lo respalden.)\nEl equipo sigue bloqueado hasta que un operador lo revise.",
+        "alertas": [],
+        "provisional": false
+      },
+      "tiempo_s": 3.2,
+      "critico": false
+    }
+  ]
+}
