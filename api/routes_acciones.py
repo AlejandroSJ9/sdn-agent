@@ -8,9 +8,12 @@ Endpoints que el operador usa desde el dashboard para actuar sobre la red:
 """
 
 import logging
+import secrets
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
+
+from config import AGENTE_API_KEY
 
 import integrations.ryu_rest as ryu
 from db.repository import (
@@ -23,7 +26,18 @@ from api.websocket import ws_manager
 
 logger = logging.getLogger('AgenteSDN.routes.acciones')
 
-router = APIRouter(tags=['Acciones'])
+
+
+def verificar_api_key(x_api_key: str = Header(default='')) -> None:
+    """Todas las rutas de este archivo cambian la red: exigen X-API-Key."""
+    if not AGENTE_API_KEY:
+        raise HTTPException(503, 'AGENTE_API_KEY no esta configurada en el agente')
+    if not secrets.compare_digest(x_api_key.encode(), AGENTE_API_KEY.encode()):
+        logger.warning('[Acciones] Peticion rechazada: X-API-Key invalida o ausente')
+        raise HTTPException(401, 'X-API-Key invalida o ausente')
+
+
+router = APIRouter(tags=['Acciones'], dependencies=[Depends(verificar_api_key)])
 
 
 # --- Modelos ------------------------------------------------------------------

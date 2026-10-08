@@ -284,7 +284,7 @@ def es_error_de_sistema(error: str, pipeline: str) -> bool:
     etapas: solo si cayo la etapa de veredicto o el pipeline completo; un
     fallback de triage o respuesta no cambia el veredicto.
     """
-    if pipeline == 'monolitico':
+    if pipeline != 'etapas':
         return True
     return any(parte.strip().startswith(('etapa2:', 'pipeline:')) for parte in error.split(';'))
 
@@ -340,7 +340,8 @@ def ejecutar(caso: dict, alerta: dict, db: Path, etiqueta: str, pipeline: str) -
     esp = caso['esperado']
     r['veredicto'], r['confianza'], r['nivel'] = inc.get('veredicto'), inc.get('confianza'), inc.get('nivel')
     r['acierto']  = r['veredicto'] in esp['aceptables']
-    r['nivel_ok'] = r['nivel'] in esp['niveles']
+    # El MVP no usa niveles de autonomia: nivel None no se evalua
+    r['nivel_ok'] = None if r['nivel'] is None else r['nivel'] in esp['niveles']
     r['confianza_ok'] = (r['confianza'] or 0) >= esp.get('confianza_minima', 0) if r['acierto'] else False
     if not r['acierto']:
         r['costo'] = COSTO_ERROR.get((caso['clase'], r['veredicto']), COSTO_DEFECTO)
@@ -364,6 +365,7 @@ def resumir(resultados: list[dict]) -> dict:
         estabilidad[cid] = {'mas_comun': comun, 'coinciden': n, 'ejecuciones': len(vs)}
 
     n = len(validos)
+    con_nivel = [r for r in validos if r['nivel_ok'] is not None]
     return {
         **metricas_llm(resultados),
         'ejecuciones':           len(resultados),
@@ -378,7 +380,8 @@ def resumir(resultados: list[dict]) -> dict:
         'costo_total':           sum(r['costo'] for r in validos),
         'costo_medio':           round(sum(r['costo'] for r in validos) / n, 2) if n else 0,
         'fallos_criticos':       sorted({r['id'] for r in validos if r.get('critico')}),
-        'nivel_correcto':        round(100 * sum(r['nivel_ok'] for r in validos) / n, 1) if n else 0,
+        'nivel_correcto':        (round(100 * sum(r['nivel_ok'] for r in con_nivel) / len(con_nivel), 1)
+                                  if con_nivel else '-'),
         'confianza_suficiente':  sum(r['confianza_ok'] for r in validos),
         'por_clase':             por_clase,
         'estabilidad':           estabilidad,
@@ -411,16 +414,23 @@ def metricas_llm(resultados: list[dict]) -> dict:
     }
 
 
+def detalle_confianza_nivel(r: dict) -> str:
+    partes = [f'{r["confianza"]}%' if r['confianza'] is not None else None,
+              f'nivel {r["nivel"]}' if r['nivel'] is not None else None]
+    partes = [p for p in partes if p]
+    return f'({", ".join(partes)})' if partes else ''
+
+
 def imprimir(r: dict, caso: dict) -> None:
     esp = caso['esperado']
     if r['error']:
         print(f'  {WARN}ERROR{END} {r["id"]} [{r["ejecucion"]}] {r["error"]}')
         return
     marca = f'{OK}OK  {END}' if r['acierto'] else f'{FAIL}FALLO{END}'
-    nivel = '' if r['nivel_ok'] else f' {WARN}(nivel esperado {esp["niveles"]}){END}'
+    nivel = '' if r['nivel_ok'] is not False else f' {WARN}(nivel esperado {esp["niveles"]}){END}'
     print(f'  {marca} {r["id"]} [{r["ejecucion"]}] {caso["clase"]:9} '
           f'esperado={esp["veredicto"]:14} obtenido={r["veredicto"]} '
-          f'({r["confianza"]}%, nivel {r["nivel"]}){nivel}  {r.get("tiempo_s", 0)}s')
+          f'{detalle_confianza_nivel(r)}{nivel}  {r.get("tiempo_s", 0)}s')
     if r.get('error_llm'):
         print(f'         {WARN}fallback parcial: {r["error_llm"]}{END}')
     if not r['acierto']:
@@ -439,9 +449,10 @@ def imprimir_resumen(res: dict) -> None:
     color = FAIL if res['fallos_criticos'] else OK
     print(f'  Fallos criticos:      {color}{res["fallos_criticos"] or "ninguno"}{END}')
     print(f'  Nivel correcto:       {res["nivel_correcto"]}%')
-    print(f'  Fallbacks por etapa:  {res["fallbacks_por_etapa"] or "sin traza"}')
-    print(f'  Reintentos por etapa: {res["reintentos_por_etapa"] or "-"}')
-    print(f'  Latencia media (ms):  {res["latencia_media_ms"] or "sin traza"}')
+    if res['con_traza']:
+        print(f'  Fallbacks por etapa:  {res["fallbacks_por_etapa"]}')
+        print(f'  Reintentos por etapa: {res["reintentos_por_etapa"] or "-"}')
+        print(f'  Latencia media (ms):  {res["latencia_media_ms"]}')
     print(f'\n  {BOLD}Por clase:{END}')
     for clase, v in res['por_clase'].items():
         print(f'    {clase:10} {v["aciertos"]}/{v["total"]}')
@@ -494,8 +505,8 @@ def main() -> None:
     ap.add_argument('--semilla', type=int, default=2026)
     ap.add_argument('--db', type=Path, default=DB_DEFECTO, help='DB que usa el agente')
     ap.add_argument('--url', default=AGENTE_URL)
-    ap.add_argument('--pipeline', choices=['etapas', 'monolitico'], default='etapas',
-                    help='pipeline que se espera en el agente (LLM_PIPELINE al arrancarlo)')
+    ap.add_argument('--pipeline', choices=['mvp', 'etapas', 'monolitico'], default='mvp',
+                    help='version del agente que se evalua (etiqueta del reporte)')
     ap.add_argument('--comparar', nargs='+', type=Path, metavar='REPORTE',
                     help='imprime la tabla comparativa de estos reportes y termina')
     args = ap.parse_args()
@@ -529,7 +540,7 @@ def main() -> None:
     salud = http('GET', f'{AGENTE_URL}/health')
     if not isinstance(salud, dict) or salud.get('status') != 'ok':
         raise SystemExit(f'{FAIL}El agente no responde en {AGENTE_URL}{END}: {salud}')
-    if salud.get('pipeline', 'monolitico') != args.pipeline:
+    if 'pipeline' in salud and salud['pipeline'] != args.pipeline:
         raise SystemExit(f'{FAIL}El agente corre con LLM_PIPELINE={salud.get("pipeline")} y se pidio '
                          f'--pipeline {args.pipeline}{END}: reiniciarlo con LLM_PIPELINE={args.pipeline}')
 

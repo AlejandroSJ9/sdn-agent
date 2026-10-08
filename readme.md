@@ -111,19 +111,20 @@ sdn-agent/
 ## Flujo de un incidente
 
 ```
-Ryu-IA detecta puntaje >= 60
+Ryu-IA detecta puntaje >= 60 y bloquea el equipo (DROP)
     | POST /alert (JSON)
     v
-SDN-Agent recibe y procesa en background
-    |
-    |-- Turno 1: LLM analiza el JSON
-    |-- Turno 2: LLM pide historial -> agente consulta SQLite
-    \-- Turno 3: LLM emite veredicto
-         |
-         |-- Nivel 1 -> accion automatica + Telegram informativo
-         |-- Nivel 2 -> Telegram con botones Aprobar/Rechazar (10 min)
-         \-- Nivel 3 -> alerta urgente, sin accion automatica
+SDN-Agent
+    |-- 1. Arma un resumen: metricas + lista blanca + alertas anteriores
+    |-- 2. Una sola llamada al LLM -> {"veredicto", "explicacion"}
+    |      (respuesta invalida: un reintento; si falla -> indeterminado)
+    |-- 3. falso_positivo sin lista blanca ni historial -> indeterminado
+    |-- 4. Responde a Ryu: siempre mantener_bloqueo
+    \-- 5. Telegram notifica (solo informativo) y se guarda en la DB
 ```
+
+El agente nunca desbloquea un equipo por su cuenta: el operador lo hace a mano
+con `POST /accion` (requiere el encabezado `X-API-Key`).
 
 ---
 
@@ -154,8 +155,7 @@ SDN-Agent recibe y procesa en background
 | `RYU_REST_URL` | URL REST API de Ryu-IA | No (default: localhost:8080) |
 | `TELEGRAM_ENABLED` | Activar Telegram | No (default: true) |
 | `DB_FILE` | Ruta de la base de datos SQLite | No (default: sdn_context.db) |
-| `MAX_TURNOS_LLM` | Turnos maximos con el LLM | No (default: 3) |
-| `HITL_TIMEOUT_SEC` | Segundos para aprobar accion HITL | No (default: 600) |
+| `AGENTE_API_KEY` | Clave para `POST /accion` y `/umbrales` (encabezado `X-API-Key`) | Si, para usar esos endpoints |
 
 ---
 
@@ -163,8 +163,7 @@ SDN-Agent recibe y procesa en background
 
 - Las credenciales viven solo en `.env` -- nunca en el codigo
 - `.env` esta en `.gitignore` -- nunca se sube a GitHub
-- Los tokens de Telegram expiran en 10 minutos (configurable)
-- El agente requiere confianza >= 85% para desbloquear un host automaticamente
+- El agente nunca desbloquea hosts automaticamente; `POST /accion` exige `X-API-Key`
 - Veredicto fallback conservador si OpenAI falla (mantener bloqueo)
 
 ---

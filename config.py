@@ -59,6 +59,12 @@ if TELEGRAM_ENABLED and (not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID):
         'Configurarlos en .env o poner TELEGRAM_ENABLED=false.'
     )
 
+# -- Seguridad de la API ------------------------------------------------------
+# Clave que exigen los endpoints que cambian la red (POST /accion, /umbrales).
+# Se envia en el encabezado X-API-Key. Sin clave configurada esos endpoints
+# rechazan todas las peticiones.
+AGENTE_API_KEY = os.getenv('AGENTE_API_KEY', '')
+
 # -- Ryu REST -----------------------------------------------------------------
 RYU_REST_URL = os.getenv('RYU_REST_URL', 'http://localhost:8080')
 RYU_TIMEOUT  = int(os.getenv('RYU_TIMEOUT', '5'))

@@ -1,12 +1,14 @@
 """
 services/agente.py
 Orquestador central. Coordina el flujo completo de un incidente:
-  1. Recibe el payload de Ryu
-  2. Lo analiza con el LLM (services/pipeline.py)
+  1. Recibe el payload de Ryu (que ya bloqueo el equipo)
+  2. Lo analiza con el LLM (services/analisis.py)
   3. Registra el resultado en la DB (db/repository.py)
-  4. Ejecuta acciones en Ryu (integrations/ryu_rest.py)
-  5. Notifica por Telegram (integrations/telegram.py)
-  6. Emite eventos al WebSocket (api/websocket.py)
+  4. Notifica por Telegram (integrations/telegram.py), solo informativo
+  5. Emite eventos al WebSocket (api/websocket.py)
+
+El agente no ejecuta acciones en la red: el bloqueo de Ryu se mantiene y
+los desbloqueos los hace el operador a mano (POST /accion).
 
 Este módulo es el único que conoce a todas las demás capas.
 Las capas individuales no se conocen entre sí.
@@ -17,12 +19,8 @@ from datetime import datetime
 from typing import Callable
 
 from config import TELEGRAM_ENABLED
-from services.pipeline import analizar_incidente
-from db.repository import (
-    registrar_incidente,
-    desbloquear_host_db,
-)
-import integrations.ryu_rest as ryu
+from services.analisis import analizar_incidente
+from db.repository import registrar_incidente
 import integrations.telegram as telegram
 
 logger = logging.getLogger('AgenteSDN.agente')
@@ -30,8 +28,6 @@ logger = logging.getLogger('AgenteSDN.agente')
 # Callback para emitir eventos al WebSocket
 # Se inyecta desde api/routes_alertas.py al arrancar
 _emit_ws: Callable | None = None
-
-PUERTOS_CRITICOS = [445, 135, 3389, 5985, 139]
 
 # Contrato de respuesta de Ryu-IA (_ejecutar_respuesta_agente)
 VEREDICTOS_RYU  = {'confirmado', 'falso_positivo', 'indeterminado'}
@@ -76,213 +72,27 @@ def _dpid_from_payload(payload: dict) -> int:
 
 def respuesta_para_ryu(respuesta: dict) -> dict:
     """
-    Traduce el veredicto del LLM al JSON que espera Ryu-IA.
-
-    acciones_ryu solo lleva lo que el agente ejecuta sin aprobacion
-    (mismas condiciones que _ejecutar_nivel_1). Lo que espera al operador
-    por Telegram no se envia: Ryu lo ejecutaria al instante y se saltaria
-    la aprobacion humana.
+    Traduce el veredicto al JSON que espera Ryu-IA.
+    acciones_ryu es siempre mantener_bloqueo: el agente nunca desbloquea
+    por su cuenta, aunque el veredicto sea falso_positivo.
     """
     veredicto = respuesta.get('veredicto', 'indeterminado')
-    if veredicto == 'ya_contenido':
-        veredicto = 'confirmado'   # Ryu no conoce ya_contenido; el bloqueo sigue
-    elif veredicto not in VEREDICTOS_RYU:
+    if veredicto not in VEREDICTOS_RYU:
         veredicto = 'indeterminado'
 
     severidad = respuesta.get('severidad')
     if severidad not in SEVERIDADES_RYU:
         severidad = 'alta'
 
-    # Ryu solo desbloquea con veredicto falso_positivo
-    desbloqueo_automatico = (
-        respuesta.get('nivel_autonomia') == 1
-        and veredicto == 'falso_positivo'
-        and 'desbloquear_host' in respuesta.get('acciones_automaticas', [])
-        and respuesta.get('confianza', 0) >= 85
-    )
-
     mensaje = respuesta.get('mensaje_telegram', '')
     return {
         'veredicto':        veredicto,
         'severidad':        severidad,
-        'acciones_ryu':     ['desbloquear'] if desbloqueo_automatico else ['mantener_bloqueo'],
+        'acciones_ryu':     ['mantener_bloqueo'],
         'mensaje_operador': mensaje,
         'alertas':          ['telegram'] if TELEGRAM_ENABLED and mensaje else [],
         'provisional':      False,
     }
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Callbacks de HITL — se pasan a telegram.iniciar_polling()
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def _on_aprobado(pendiente: dict) -> None:
-    """
-    Se ejecuta cuando el operador aprueba una acción via Telegram.
-    """
-    accion = pendiente.get('accion', '')
-    params = pendiente.get('parametros', {})
-    dpid   = params.get('dpid', 1)
-    logger.info(f'[HITL] Operador APROBÓ: {accion} — {params}')
-
-    if accion == 'mantener_bloqueo':
-        host = pendiente.get('host', params.get('ip', 'desconocido'))
-        telegram.enviar_texto(
-            f'✅ <b>Bloqueo confirmado</b>\n'
-            f'Host <code>{host}</code> permanece aislado.\n'
-            f'La regla DROP sigue activa en el switch.'
-        )
-        logger.info(f'[HITL] Bloqueo mantenido para {host}')
-        _emit({'tipo': 'bloqueo_mantenido', 'host': host, 'origen': 'hitl'})
-
-    elif accion == 'bloquear_hosts':
-        hosts = params.get('hosts', [])
-        for h in hosts:
-            ryu.bloquear_host(h, dpid)
-        telegram.enviar_texto(
-            f'✅ <b>Acción ejecutada</b>\n'
-            f'{len(hosts)} hosts bloqueados:\n' +
-            '\n'.join(f'  • <code>{h}</code>' for h in hosts)
-        )
-        _emit({'tipo': 'hosts_bloqueados', 'hosts': hosts, 'origen': 'hitl'})
-
-    elif accion == 'desbloquear_host':
-        ip = params.get('ip', '')
-        ryu.desbloquear_host(ip, dpid)
-        desbloquear_host_db(ip)
-        telegram.enviar_texto(f'✅ Host <code>{ip}</code> desbloqueado.')
-        _emit({'tipo': 'host_desbloqueado', 'ip': ip, 'origen': 'hitl'})
-
-    elif accion == 'bloquear_subred':
-        subred = params.get('subred', '')
-        ryu.bloquear_subred(subred, dpid)
-        telegram.enviar_texto(f'✅ Subred <code>{subred}</code> bloqueada.')
-        _emit({'tipo': 'subred_bloqueada', 'subred': subred, 'origen': 'hitl'})
-
-    else:
-        logger.warning(f'[HITL] Acción desconocida aprobada: {accion}')
-        telegram.enviar_texto(f'⚠️ Acción desconocida: {accion}')
-
-
-def _on_rechazado(pendiente: dict) -> None:
-    """Se ejecuta cuando el operador rechaza una acción via Telegram."""
-    accion = pendiente.get('accion', '')
-    logger.info(f'[HITL] Operador RECHAZÓ: {accion}')
-    _emit({'tipo': 'hitl_rechazado', 'accion': accion})
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Ejecución de respuesta del LLM
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def _ejecutar_nivel_1(src_ip: str, dpid: int, respuesta: dict) -> None:
-    """Nivel 1: acciones automáticas sin confirmación."""
-    for accion in respuesta.get('acciones_automaticas', []):
-        if accion == 'mantener_bloqueo':
-            logger.info(f'[Agente] Nivel 1 — manteniendo DROP de {src_ip}')
-
-        elif accion == 'desbloquear_host':
-            confianza = respuesta.get('confianza', 0)
-            if confianza >= 85:
-                ryu.desbloquear_host(src_ip, dpid)
-                desbloquear_host_db(src_ip)
-                logger.info(f'[Agente] Nivel 1 — host desbloqueado: {src_ip}')
-            else:
-                logger.warning(
-                    f'[Agente] Desbloqueo rechazado — confianza insuficiente: '
-                    f'{confianza}% < 85%'
-                )
-
-    # Siempre notificar al SOC con el mensaje informativo
-    msg = respuesta.get('mensaje_telegram', '')
-    if msg:
-        telegram.enviar_texto(msg)
-
-
-def _ejecutar_nivel_2(src_ip: str, dpid: int, respuesta: dict) -> None:
-    """Nivel 2: enviar botones a Telegram y esperar confirmación del operador."""
-    pendientes = respuesta.get('acciones_pendientes_aprobacion', [])
-    hosts_riesgo = respuesta.get('hosts_en_riesgo', [])
-    msg  = respuesta.get('mensaje_telegram', '')
-
-    # Determinar la acción principal y sus parámetros
-    accion_principal = pendientes[0] if pendientes else 'mantener_bloqueo'
-    parametros: dict = {'dpid': dpid}
-
-    if accion_principal in ('bloquear_hosts_adicionales', 'bloquear_hosts'):
-        parametros['hosts']  = hosts_riesgo
-        parametros['accion'] = 'bloquear_hosts'
-    elif accion_principal == 'desbloquear_host':
-        parametros['ip']     = src_ip
-        parametros['accion'] = 'desbloquear_host'
-    elif accion_principal == 'bloquear_subred':
-        subred = src_ip.rsplit('.', 1)[0] + '.0/24'
-        parametros['subred'] = subred
-        parametros['accion'] = 'bloquear_subred'
-    else:
-        parametros['accion'] = accion_principal
-
-    telegram.enviar_hitl(
-        texto=msg,
-        accion=parametros.get('accion', accion_principal),
-        parametros=parametros,
-        host=src_ip,
-    )
-
-
-def _ejecutar_nivel_3(src_ip: str, respuesta: dict) -> None:
-    """Nivel 3: solo notificar — NO ejecutar nada en la red."""
-    msg = respuesta.get('mensaje_telegram', '')
-    urgente = (
-        f'🚨🚨 <b>ALERTA URGENTE — NIVEL 3</b>\n\n'
-        f'{msg}\n\n'
-        f'⛔ <b>El agente NO ha ejecutado acciones automáticas.</b>\n'
-        f'Se requiere aprobación manual del operador.'
-    )
-    telegram.enviar_texto(urgente)
-    logger.critical(
-        f'[Agente] Nivel 3 — alerta urgente enviada para {src_ip}. '
-        f'Sin acciones automáticas.'
-    )
-
-
-def _enviar_recomendaciones_forenses(src_ip: str, respuesta: dict) -> None:
-    """Envía las recomendaciones forenses como mensaje separado."""
-    forenses = respuesta.get('recomendaciones_forenses', [])
-    if forenses:
-        texto = (
-            f'📋 <b>Recomendaciones forenses para <code>{src_ip}</code>:</b>\n' +
-            '\n'.join(f'  • {r}' for r in forenses)
-        )
-        telegram.enviar_texto(texto)
-
-
-def _ejecutar_respuesta(payload: dict, respuesta: dict) -> None:
-    """
-    Despacha la ejecución al nivel de autonomía correspondiente.
-    """
-    nivel    = respuesta.get('nivel_autonomia', 1)
-    src_ip   = payload['host_origen']
-    dpid     = _dpid_from_payload(payload)
-
-    logger.info(
-        f'[Agente] Ejecutando respuesta — host={src_ip} '
-        f'nivel={nivel} veredicto={respuesta.get("veredicto")}'
-    )
-
-    if nivel == 1:
-        _ejecutar_nivel_1(src_ip, dpid, respuesta)
-    elif nivel == 2:
-        _ejecutar_nivel_2(src_ip, dpid, respuesta)
-    elif nivel == 3:
-        _ejecutar_nivel_3(src_ip, respuesta)
-    else:
-        logger.error(f'[Agente] Nivel de autonomía desconocido: {nivel}')
-        telegram.enviar_texto(
-            f'⚠️ Nivel de autonomía desconocido ({nivel}) — revisar manualmente.'
-        )
-
-    _enviar_recomendaciones_forenses(src_ip, respuesta)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -294,7 +104,7 @@ async def procesar_alerta(payload: dict, emit_fn: Callable | None = None) -> dic
     Procesa un incidente de punta a punta:
       1. Analiza con LLM
       2. Registra en DB
-      3. Ejecuta acciones
+      3. Notifica por Telegram
       4. Emite eventos al WebSocket
 
     Retorna el veredicto para que el caller pueda loguear o responder.
@@ -322,21 +132,19 @@ async def procesar_alerta(payload: dict, emit_fn: Callable | None = None) -> dic
         # Registrar en DB
         registrar_incidente(payload, respuesta)
 
-        # Ejecutar acciones en la red y notificaciones
-        _ejecutar_respuesta(payload, respuesta)
+        # Solo notificar: el bloqueo de Ryu se mantiene
+        telegram.enviar_texto(respuesta['mensaje_telegram'])
 
         _emit({
             'tipo':      'incidente_procesado',
             'host':      src_ip,
             'veredicto': respuesta.get('veredicto'),
-            'confianza': respuesta.get('confianza'),
-            'nivel':     respuesta.get('nivel_autonomia'),
             'ts':        datetime.utcnow().isoformat() + 'Z',
         })
 
         logger.info(
             f'[Agente] ✓ Incidente procesado: {src_ip} → '
-            f'{respuesta.get("veredicto")} ({respuesta.get("confianza")}%)'
+            f'{respuesta.get("veredicto")}'
         )
         return respuesta
 
@@ -353,8 +161,4 @@ def iniciar_servicios() -> None:
     """
     from db.database import init_db
     init_db()
-    telegram.iniciar_polling(
-        on_aprobado=_on_aprobado,
-        on_rechazado=_on_rechazado,
-    )
     logger.info('[Agente] Todos los servicios iniciados correctamente')
