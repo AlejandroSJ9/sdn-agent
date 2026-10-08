@@ -50,7 +50,6 @@ if not OPENAI_API_KEY:
 TELEGRAM_TOKEN    = os.getenv('TELEGRAM_TOKEN',   '')
 TELEGRAM_CHAT_ID  = os.getenv('TELEGRAM_CHAT_ID', '')
 TELEGRAM_ENABLED  = os.getenv('TELEGRAM_ENABLED', 'true').lower() == 'true'
-TELEGRAM_POLL_SEC = int(os.getenv('TELEGRAM_POLL_SEC', '2'))
 
 if TELEGRAM_ENABLED and (not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID):
     raise EnvironmentError(
@@ -70,18 +69,6 @@ RYU_REST_URL = os.getenv('RYU_REST_URL', 'http://localhost:8080')
 RYU_TIMEOUT  = int(os.getenv('RYU_TIMEOUT', '5'))
 
 # -- Logica del agente --------------------------------------------------------
-# etapas:     triage -> veredicto -> respuesta (services/pipeline.py)
-# monolitico: prompt unico con loop de MAX_TURNOS_LLM turnos (services/monolitico.py),
-#             se conserva para comparar ambas versiones en la tesis
-LLM_PIPELINE = os.getenv('LLM_PIPELINE', 'etapas').strip().lower()
-if LLM_PIPELINE not in ('etapas', 'monolitico'):
-    raise EnvironmentError(
-        f'LLM_PIPELINE={LLM_PIPELINE!r} no es valido. Usar "etapas" o "monolitico".'
-    )
-
-MAX_TURNOS_LLM        = int(os.getenv('MAX_TURNOS_LLM', '3'))
-HITL_TIMEOUT_SEGUNDOS = int(os.getenv('HITL_TIMEOUT_SEC', '600'))
-
 # Ryu-IA espera la respuesta de /alert como maximo AGENT_TIMEOUT = 5 s.
 # Si el LLM no termina en este plazo se responde un veredicto provisional
 # (mantener bloqueo) y el analisis sigue en segundo plano.

@@ -1,5 +1,5 @@
 # =============================================================================
-# requirements.txt -- SDN Agent (LLM + HITL + Dashboard)
+# requirements.txt -- SDN Agent (LLM + notificaciones + Dashboard)
 # Universidad Catolica de Colombia -- Proyecto de Grado 2026
 #
 # Instalacion:

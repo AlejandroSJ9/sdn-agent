@@ -89,14 +89,12 @@ async def shutdown():
 def health():
     from datetime import datetime
     from api.websocket import ws_manager
-    from integrations.telegram import get_acciones_pendientes
     return {
         'status':            'ok',
         'modelo':            OPENAI_MODEL,
         'ryu_rest':          RYU_REST_URL,
         'telegram':          TELEGRAM_ENABLED,
         'ws_clientes':       ws_manager.num_clientes,
-        'hitl_pendientes':   len(get_acciones_pendientes()),
         'ts':                datetime.utcnow().isoformat() + 'Z',
     }
 

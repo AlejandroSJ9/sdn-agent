@@ -2,7 +2,7 @@
 """
 services/llm.py
 Cliente HTTP de OpenRouter (formato OpenAI) y extraccion del JSON de la
-respuesta. No conoce prompts ni etapas: solo envia mensajes y devuelve
+respuesta. No conoce prompts: solo envia mensajes y devuelve
 el objeto JSON que respondio el modelo.
 """
 

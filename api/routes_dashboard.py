@@ -16,7 +16,6 @@ from db.repository import (
     get_umbrales,
 )
 from integrations.ryu_rest import get_flujos, get_topologia_switches, get_topologia_hosts
-from integrations.telegram import get_acciones_pendientes
 from api.websocket import ws_manager
 
 logger = logging.getLogger('AgenteSDN.routes.dashboard')
@@ -28,13 +27,12 @@ router = APIRouter(tags=['Dashboard'])
 def estado_red():
     """
     Resumen del estado actual:
-    nivel de alerta, hosts bloqueados/en riesgo y acciones HITL pendientes.
+    nivel de alerta y hosts bloqueados/en riesgo.
     """
     return {
         'estado_red':        get_estado_red(),
         'hosts_bloqueados':  get_hosts_bloqueados(),
         'hosts_en_riesgo':   get_hosts_riesgo(),
-        'hitl_pendientes':   len(get_acciones_pendientes()),
         'ws_clientes':       ws_manager.num_clientes,
     }
 

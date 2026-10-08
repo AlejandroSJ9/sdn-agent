@@ -5,8 +5,9 @@ Alejandro Salas Jurado - Sebastian Briceno Restrepo
 
 Agente autonomo que recibe alertas del controlador SDN
 ([Ryu-IA](https://github.com/sbriceno1379/Ryu-IA)),
-las analiza con GPT-4o-mini de forma bidireccional, notifica al operador
-via Telegram con botones HITL, y ejecuta acciones en la red via REST API de Ryu.
+las analiza con un LLM (una sola llamada, via OpenRouter) y notifica al operador
+por Telegram. Ryu ya bloqueo el equipo: el agente mantiene el bloqueo y el
+operador decide los desbloqueos.
 
 ---
 
@@ -15,7 +16,7 @@ via Telegram con botones HITL, y ejecuta acciones en la red via REST API de Ryu.
 | Proyecto | Repositorio | Funcion |
 |---|---|---|
 | **Ryu-IA** | `sbriceno1379/Ryu-IA` | Controlador SDN + deteccion |
-| **SDN-Agent** (este) | `AlejandroSJ9/sdn-agent` | Agente LLM + alertas + HITL |
+| **SDN-Agent** (este) | `AlejandroSJ9/sdn-agent` | Agente LLM + alertas + notificaciones |
 
 > **Orden de arranque:** primero Ryu-IA, luego SDN-Agent.
 
@@ -78,12 +79,12 @@ sdn-agent/
 |
 |-- services/                # Logica de negocio
 |   |-- agente.py            # Orquestador del flujo completo
-|   |-- llm.py               # Loop bidireccional con OpenAI
-|   \-- prompt.py            # Construccion de prompts
+|   |-- analisis.py          # Prompt, llamada al LLM y ruta fija del veredicto
+|   \-- llm.py               # Cliente HTTP de OpenRouter
 |
 |-- integrations/            # Sistemas externos
 |   |-- ryu_rest.py          # Cliente REST API de Ryu-IA
-|   \-- telegram.py          # Bot de Telegram + polling HITL
+|   \-- telegram.py          # Notificaciones por Telegram
 |
 \-- db/                      # Persistencia
     |-- database.py          # Context manager SQLite

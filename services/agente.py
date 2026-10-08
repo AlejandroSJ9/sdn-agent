@@ -57,15 +57,6 @@ def _emit(evento: dict) -> None:
         _emit_ws(evento)
 
 
-def _dpid_from_payload(payload: dict) -> int:
-    """Extrae el DPID numérico del payload de Ryu."""
-    dpid_str = payload.get('dpid_switch', '0x0000000000000001')
-    try:
-        return int(dpid_str, 16) if dpid_str.startswith('0x') else int(dpid_str)
-    except (ValueError, TypeError):
-        return 1
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Respuesta a Ryu-IA
 # ═══════════════════════════════════════════════════════════════════════════════
