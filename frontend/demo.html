@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SDN-Agent en vivo</title>
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #ffffff; --ink: #18202b; --muted: #5b6676; --line: #d9dee6;
+    --accent: #2f6fdb; --ryu: #7a4fd6; --llm: #c46a12; --db: #4a6b8a; --tg: #1f93c9; --op: #3c8c5a;
+    --ok: #1f8a4c; --bad: #c9302c; --warn: #b7791f; --wire: #b9c1cc; --chip: #eef1f5;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f141b; --card: #171e28; --ink: #e6ebf2; --muted: #9aa6b6; --line: #2a3442;
+      --accent: #5b93f0; --ryu: #a07ff0; --llm: #e39340; --db: #7f9bb8; --tg: #47b3e6; --op: #5bb57d;
+      --ok: #3fbf74; --bad: #ef5d58; --warn: #e0a33d; --wire: #3a4656; --chip: #222b37;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f141b; --card: #171e28; --ink: #e6ebf2; --muted: #9aa6b6; --line: #2a3442;
+    --accent: #5b93f0; --ryu: #a07ff0; --llm: #e39340; --db: #7f9bb8; --tg: #47b3e6; --op: #5bb57d;
+    --ok: #3fbf74; --bad: #ef5d58; --warn: #e0a33d; --wire: #3a4656; --chip: #222b37;
+    --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+  }
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px;
+    padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--card);
+  }
+  header h1 { font-size: 20px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 14px; }
+  .chips { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 3px 12px; font-size: 13px; color: var(--muted); }
+  .chip b { color: var(--ink); font-weight: 600; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--bad); }
+  .dot.on { background: var(--ok); }
+  main { max-width: 1280px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow); min-width: 0; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; letter-spacing: .01em; }
+  .card h2 small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+  .grid2 { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+  .grid3 { display: grid; gap: 16px; grid-template-columns: 1.1fr 1fr 1.3fr; }
+  @media (max-width: 1000px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+
+  /* Diagrama */
+  .lienzo { overflow-x: auto; }
+  svg { width: 100%; min-width: 680px; height: auto; display: block; }
+  .nodo rect { fill: var(--card); stroke: var(--line); stroke-width: 2; transition: stroke .3s, fill .3s; }
+  .nodo .t { font-size: 15px; font-weight: 650; fill: var(--ink); }
+  .nodo .s { font-size: 12px; fill: var(--muted); }
+  .nodo.activo rect { stroke-width: 3.5; }
+  #n-equipo.activo rect { stroke: var(--bad); } #n-ryu.activo rect { stroke: var(--ryu); }
+  #n-agente.activo rect { stroke: var(--accent); } #n-llm.activo rect { stroke: var(--llm); }
+  #n-db.activo rect { stroke: var(--db); } #n-tg.activo rect { stroke: var(--tg); } #n-op.activo rect { stroke: var(--op); }
+  .cable { fill: none; stroke: var(--wire); stroke-width: 2; }
+  .cable.activo { stroke-width: 3; }
+  .etq { font-size: 12px; fill: var(--muted); }
+  .etq.activo { fill: var(--ink); font-weight: 650; }
+  .franja { width: 5px; }
+
+  /* Pasos */
+  ol.pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  ol.pasos li {
+    display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start;
+    padding: 8px 10px; border-radius: 8px; border: 1px solid transparent;
+  }
+  ol.pasos li .n {
+    width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--chip); color: var(--muted); font-size: 13px; font-weight: 650;
+  }
+  ol.pasos li .tt { font-weight: 600; }
+  ol.pasos li .dd { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+  ol.pasos li.activo { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  ol.pasos li.activo .n { background: var(--accent); color: #fff; }
+  ol.pasos li.hecho .n { background: var(--ok); color: #fff; }
+
+  /* Resultado */
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-weight: 650; font-size: 13px; color: #fff; background: var(--muted); }
+  .badge.confirmado { background: var(--bad); } .badge.falso_positivo { background: var(--ok); }
+  .badge.indeterminado { background: var(--warn); }
+  .vacio { color: var(--muted); font-style: italic; }
+  .burbuja {
+    background: color-mix(in srgb, var(--tg) 12%, var(--card)); border: 1px solid color-mix(in srgb, var(--tg) 35%, var(--line));
+    border-radius: 12px 12px 12px 4px; padding: 10px 12px; white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .burbuja code { background: var(--chip); padding: 0 4px; border-radius: 4px; }
+  pre {
+    margin: 0; background: var(--chip); border-radius: 8px; padding: 10px 12px; font-size: 12.5px;
+    overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .etiqueta { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 6px; }
+
+  /* Formularios */
+  label { display: block; font-size: 13px; color: var(--muted); margin: 8px 0 4px; }
+  input {
+    width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink); font: inherit;
+  }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer; border-radius: 8px; padding: 8px 12px;
+    border: 1px solid var(--line); background: var(--chip); color: var(--ink);
+  }
+  button:hover { border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: wait; }
+  .preset { display: grid; gap: 2px; text-align: left; width: 100%; margin-bottom: 8px; padding: 10px 12px; }
+  .preset span { font-weight: 400; color: var(--muted); font-size: 13px; }
+  .fila { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .fila button { flex: 1 1 140px; }
+  .aviso { font-size: 13px; margin-top: 8px; min-height: 1.5em; overflow-wrap: anywhere; }
+  .aviso.error { color: var(--bad); } .aviso.ok { color: var(--ok); }
+
+  /* Tablas */
+  .tabla { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td.exp { color: var(--muted); max-width: 320px; }
+
+  /* Linea de tiempo */
+  #linea { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow-y: auto; }
+  #linea li { border-bottom: 1px solid var(--line); padding: 6px 2px; }
+  #linea summary { cursor: pointer; display: grid; grid-template-columns: 74px 92px 1fr; gap: 8px; align-items: baseline; }
+  #linea .hora { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+  #linea .actor { font-size: 12px; font-weight: 650; border-radius: 6px; padding: 0 6px; text-align: center; color: #fff; }
+  #linea pre { margin-top: 6px; }
+  @media (max-width: 600px) { #linea summary { grid-template-columns: 64px 1fr; } #linea summary .txt { grid-column: 1 / -1; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>SDN-Agent · Demostración en vivo</h1>
+    <div class="sub">Ryu-IA detecta y bloquea · el agente analiza con un LLM · Telegram notifica</div>
+  </div>
+  <div class="chips">
+    <span class="chip"><span class="dot" id="ws-dot"></span><b id="ws-txt">Desconectado</b></span>
+    <span class="chip">Modelo: <b id="h-modelo">—</b></span>
+    <span class="chip">Telegram: <b id="h-tg">—</b></span>
+    <span class="chip">Red: <b id="h-nivel">—</b></span>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Interacción entre Ryu y el agente <small>se anima con cada alerta real o simulada</small></h2>
+    <div class="lienzo"><svg viewBox="0 0 930 410" role="img" aria-label="Diagrama de la interacción entre Ryu, el agente, el LLM, la base de datos, Telegram y el operador">
+      <defs>
+        <marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--wire)"/>
+        </marker>
+      </defs>
+
+      <path id="p-equipo-ryu" class="cable" d="M170,215 L248,215" marker-end="url(#flecha)"/>
+      <path id="p-ryu-agente" class="cable" d="M380,197 L498,197" marker-end="url(#flecha)"/>
+      <path id="p-agente-ryu" class="cable" d="M500,233 L382,233" marker-end="url(#flecha)"/>
+      <path id="p-agente-llm" class="cable" d="M630,190 C695,190 700,68 758,68" marker-end="url(#flecha)"/>
+      <path id="p-llm-agente" class="cable" d="M760,92 C712,92 690,205 632,205" marker-end="url(#flecha)"/>
+      <path id="p-agente-db" class="cable" d="M565,250 L565,328" marker-end="url(#flecha)"/>
+      <path id="p-agente-tg" class="cable" d="M630,222 L758,222" marker-end="url(#flecha)"/>
+      <path id="p-op-agente" class="cable" d="M760,358 C700,358 680,246 632,240" marker-end="url(#flecha)"/>
+
+      <text id="e-equipo-ryu" class="etq" x="209" y="203" text-anchor="middle">① tráfico</text>
+      <text id="e-ryu-agente" class="etq" x="440" y="188" text-anchor="middle">② POST /alert</text>
+      <text id="e-agente-ryu" class="etq" x="440" y="253" text-anchor="middle">⑦ respuesta</text>
+      <text id="e-agente-llm" class="etq" x="662" y="120" text-anchor="middle">③ consulta</text>
+      <text id="e-llm-agente" class="etq" x="740" y="150" text-anchor="middle">④ veredicto</text>
+      <text id="e-agente-db" class="etq" x="575" y="294">⑤ guarda</text>
+      <text id="e-agente-tg" class="etq" x="694" y="212" text-anchor="middle">⑥ avisa</text>
+      <text id="e-op-agente" class="etq" x="695" y="385" text-anchor="middle">/accion + clave</text>
+
+      <g class="nodo" id="n-equipo"><rect x="40" y="180" width="130" height="70" rx="12"/>
+        <text class="t" x="105" y="209" text-anchor="middle">Equipo</text>
+        <text class="s" id="s-equipo" x="105" y="230" text-anchor="middle">red de oficina</text></g>
+      <g class="nodo" id="n-ryu"><rect x="250" y="180" width="130" height="70" rx="12"/>
+        <rect class="franja" x="250" y="180" width="5" height="70" rx="2" style="fill:var(--ryu);stroke:none"/>
+        <text class="t" x="317" y="209" text-anchor="middle">Ryu-IA</text>
+        <text class="s" id="s-ryu" x="317" y="230" text-anchor="middle">controlador SDN</text></g>
+      <g class="nodo" id="n-agente"><rect x="500" y="180" width="130" height="70" rx="12"/>
+        <rect class="franja" x="500" y="180" width="5" height="70" rx="2" style="fill:var(--accent);stroke:none"/>
+        <text class="t" x="567" y="209" text-anchor="middle">SDN-Agent</text>
+        <text class="s" id="s-agente" x="567" y="230" text-anchor="middle">esperando alertas</text></g>
+      <g class="nodo" id="n-llm"><rect x="760" y="40" width="130" height="70" rx="12"/>
+        <rect class="franja" x="760" y="40" width="5" height="70" rx="2" style="fill:var(--llm);stroke:none"/>
+        <text class="t" x="827" y="69" text-anchor="middle">LLM</text>
+        <text class="s" id="s-llm" x="827" y="90" text-anchor="middle">OpenRouter</text></g>
+      <g class="nodo" id="n-tg"><rect x="760" y="187" width="130" height="70" rx="12"/>
+        <rect class="franja" x="760" y="187" width="5" height="70" rx="2" style="fill:var(--tg);stroke:none"/>
+        <text class="t" x="827" y="216" text-anchor="middle">Telegram</text>
+        <text class="s" id="s-tg" x="827" y="237" text-anchor="middle">notificación</text></g>
+      <g class="nodo" id="n-op"><rect x="760" y="325" width="130" height="70" rx="12"/>
+        <rect class="franja" x="760" y="325" width="5" height="70" rx="2" style="fill:var(--op);stroke:none"/>
+        <text class="t" x="827" y="354" text-anchor="middle">Operador</text>
+        <text class="s" id="s-op" x="827" y="375" text-anchor="middle">decide desbloqueos</text></g>
+      <g class="nodo" id="n-db"><rect x="500" y="330" width="130" height="70" rx="12"/>
+        <rect class="franja" x="500" y="330" width="5" height="70" rx="2" style="fill:var(--db);stroke:none"/>
+        <text class="t" x="567" y="359" text-anchor="middle">Base de datos</text>
+        <text class="s" id="s-db" x="567" y="380" text-anchor="middle">incidentes</text></g>
+
+      <circle id="paquete" r="7" cx="-20" cy="-20" fill="var(--accent)"/>
+    </svg></div>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Paso a paso <small id="pasos-host">—</small></h2>
+      <ol class="pasos" id="pasos">
+        <li id="s1"><span class="n">1</span><div><div class="tt">Ryu detecta el tráfico y bloquea el equipo</div><div class="dd"></div></div></li>
+        <li id="s2"><span class="n">2</span><div><div class="tt">Ryu envía la alerta al agente</div><div class="dd"></div></div></li>
+        <li id="s3"><span class="n">3</span><div><div class="tt">El agente consulta al LLM</div><div class="dd"></div></div></li>
+        <li id="s4"><span class="n">4</span><div><div class="tt">El LLM responde con el veredicto</div><div class="dd"></div></div></li>
+        <li id="s5"><span class="n">5</span><div><div class="tt">El agente guarda el incidente</div><div class="dd"></div></div></li>
+        <li id="s6"><span class="n">6</span><div><div class="tt">El agente avisa por Telegram (solo informa)</div><div class="dd"></div></div></li>
+        <li id="s7"><span class="n">7</span><div><div class="tt">El agente responde a Ryu</div><div class="dd"></div></div></li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>Último análisis</h2>
+      <div id="res-vacio" class="vacio">Todavía no hay análisis. Envía una alerta desde el simulador.</div>
+      <div id="res" hidden>
+        <div><span class="badge" id="res-badge"></span> &nbsp;equipo <b id="res-host"></b> <span class="sub" id="res-lat" style="color:var(--muted)"></span></div>
+        <div class="etiqueta">Explicación del LLM</div>
+        <div id="res-exp"></div>
+        <div class="etiqueta">Mensaje de Telegram</div>
+        <div class="burbuja" id="res-tg"></div>
+        <div class="etiqueta">Respuesta enviada a Ryu</div>
+        <pre id="res-ryu">—</pre>
+      </div>
+    </section>
+  </div>
+
+  <div class="grid3">
+    <section class="card">
+      <h2>Simular a Ryu <small>envía una alerta al agente</small></h2>
+      <button class="preset" data-preset="ataque">🚨 Ataque de ransomware
+        <span>Copia por SMB (M3) y conexiones a 8 equipos (M5). Sin lista blanca.</span></button>
+      <button class="preset" data-preset="legitimo">✅ Tarea legítima
+        <span>Escaneo de vulnerabilidades. Agrega el equipo a la lista blanca (pide la clave) y envía la alerta.</span></button>
+      <button class="preset" data-preset="dudoso">⚠️ Caso dudoso
+        <span>Las mismas métricas del escaneo, pero sin lista blanca ni historial.</span></button>
+      <div class="aviso" id="sim-aviso"></div>
+    </section>
+
+    <section class="card">
+      <h2>Operador <small>acciones manuales</small></h2>
+      <label for="op-clave">X-API-Key (AGENTE_API_KEY del .env)</label>
+      <input id="op-clave" type="password" autocomplete="off" placeholder="solo se guarda en esta pestaña">
+      <label for="op-ip">Equipo</label>
+      <input id="op-ip" value="10.0.20.4" inputmode="decimal">
+      <div class="fila">
+        <button id="op-wl">Agregar a lista blanca</button>
+        <button id="op-unblock">Desbloquear</button>
+      </div>
+      <div class="aviso" id="op-aviso"></div>
+    </section>
+
+    <section class="card">
+      <h2>Incidentes recientes</h2>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Hora</th><th>Equipo</th><th>Veredicto</th><th>Explicación</th></tr></thead>
+          <tbody id="tabla-inc"><tr><td colspan="4" class="vacio">Sin incidentes</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Línea de tiempo <small>eventos del agente en vivo · clic para ver el JSON</small></h2>
+    <ul id="linea"></ul>
+  </section>
+</main>
+
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const hora = (ts) => {
+  const d = ts ? new Date(ts) : new Date();
+  return isNaN(d) ? '' : d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+};
+
+// ---------------------------------------------------------------------------
+// Alertas simuladas: se construyen igual que Ryu-IA (pruebas/test_escenarios.py)
+// ---------------------------------------------------------------------------
+const PESOS = { M5: 40, M3: 35, M1: 25, M2: 20, M4: 15 };
+const PRESETS = {
+  ataque:   { host: '10.0.10.3', M1: 24, M2: 9,  M3: true,  M4: 60,  M5: 8 },
+  legitimo: { host: '10.0.20.4', M1: 85, M2: 50, M3: false, M4: 610, M5: 34,
+              whitelist: 'Escaner de vulnerabilidades Tenable Nessus; escaneo autenticado semanal' },
+  dudoso:   { host: '10.0.10.4', M1: 85, M2: 50, M3: false, M4: 610, M5: 30 },
+};
+
+function construirAlerta(p) {
+  const disp = [];
+  if (p.M1 > 20) disp.push('M1');
+  if (p.M2 > 15) disp.push('M2');
+  if (p.M3) disp.push('M3');
+  if (p.M4 > 200) disp.push('M4');
+  if (p.M5 >= 5) disp.push('M5');
+  disp.sort();
+  const t = new Set(disp), ioc = [];
+  if (t.has('M1') && t.has('M2')) ioc.push('IOC-01');
+  if (t.has('M3')) ioc.push('IOC-02');
+  if (t.has('M4')) ioc.push('IOC-03');
+  if (t.has('M5')) ioc.push('IOC-04');
+  if (t.has('M5') && t.has('M1')) ioc.push('IOC-07');
+  if (t.size >= 3) ioc.push('IOC-05');
+  const adm = p.host.startsWith('10.0.20.');
+  return {
+    timestamp: new Date().toISOString(),
+    alerta_nivel: 'CRITICO',
+    host_origen: p.host,
+    dpid_switch: adm ? '0x0000000000000002' : '0x0000000000000001',
+    contexto_topologico: adm ? 'VLAN ADM (ID=20), subred 10.0.20.0/24' : 'VLAN OPS (ID=10), subred 10.0.10.0/24',
+    puntaje_total: disp.reduce((s, m) => s + PESOS[m], 0),
+    puntaje_maximo: 135,
+    metricas: {
+      M1_nuevos_flujos_por_30s: p.M1, M2_destinos_unicos_por_30s: p.M2, M3_smb_anomalo: p.M3,
+      M4_packet_in_por_min: p.M4, M5_flujos_east_west: disp.includes('M5'), M5_count: p.M5,
+    },
+    umbrales_superados: disp,
+    ioc_activados: ioc.sort(),
+    accion_ryu_previa: `OFPFlowMod DROP prioridad 100 — ${p.host} aislado`,
+    solicitud_al_agente: '',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// HTTP
+// ---------------------------------------------------------------------------
+async function pedir(metodo, url, cuerpo, conClave) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (conClave) headers['X-API-Key'] = $('#op-clave').value.trim();
+  const r = await fetch(url, { method: metodo, headers, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
+  let datos = null;
+  try { datos = await r.json(); } catch (_) { /* sin cuerpo JSON */ }
+  if (!r.ok) {
+    const det = datos && datos.detail ? datos.detail : r.statusText;
+    throw new Error(`${r.status} — ${typeof det === 'string' ? det : JSON.stringify(det)}`);
+  }
+  return datos;
+}
+
+function aviso(el, texto, tipo) {
+  el.textContent = texto;
+  el.className = 'aviso' + (tipo ? ' ' + tipo : '');
+}
+
+// ---------------------------------------------------------------------------
+// Diagrama y animacion
+// ---------------------------------------------------------------------------
+const paquete = $('#paquete');
+const COLOR = {
+  'equipo-ryu': 'var(--bad)', 'ryu-agente': 'var(--ryu)', 'agente-ryu': 'var(--accent)',
+  'agente-llm': 'var(--accent)', 'llm-agente': 'var(--llm)', 'agente-db': 'var(--accent)',
+  'agente-tg': 'var(--accent)', 'op-agente': 'var(--op)',
+};
+
+function activarNodo(id, on) { $('#n-' + id).classList.toggle('activo', on); }
+function subtitulo(id, txt) { $('#s-' + id).textContent = txt; }
+
+function viajar(cable, ms = 900) {
+  const path = $('#p-' + cable), etq = $('#e-' + cable);
+  path.classList.add('activo'); etq.classList.add('activo');
+  path.style.stroke = COLOR[cable];
+  paquete.style.fill = COLOR[cable];
+  const largo = path.getTotalLength();
+  const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return new Promise((fin) => {
+    const t0 = performance.now();
+    function cuadro(t) {
+      const k = reducido ? 1 : Math.min((t - t0) / ms, 1);
+      const p = path.getPointAtLength(largo * k);
+      paquete.setAttribute('cx', p.x); paquete.setAttribute('cy', p.y);
+      if (k < 1) requestAnimationFrame(cuadro);
+      else {
+        setTimeout(() => {
+          path.classList.remove('activo'); etq.classList.remove('activo'); path.style.stroke = '';
+          paquete.setAttribute('cx', -20); paquete.setAttribute('cy', -20);
+          fin();
+        }, reducido ? 400 : 150);
+      }
+    }
+    requestAnimationFrame(cuadro);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Pasos
+// ---------------------------------------------------------------------------
+function reiniciarPasos(host) {
+  $('#pasos-host').textContent = 'equipo ' + host;
+  document.querySelectorAll('#pasos li').forEach((li) => {
+    li.classList.remove('activo', 'hecho');
+    li.querySelector('.dd').textContent = '';
+  });
+}
+function paso(n, detalle) {
+  for (let i = 1; i < n; i++) {
+    const li = $('#s' + i);
+    if (li.classList.contains('activo')) { li.classList.remove('activo'); li.classList.add('hecho'); }
+  }
+  const li = $('#s' + n);
+  li.classList.remove('hecho'); li.classList.add('activo');
+  if (detalle !== undefined) li.querySelector('.dd').textContent = detalle;
+}
+function pasoHecho(n) { const li = $('#s' + n); li.classList.remove('activo'); li.classList.add('hecho'); }
+
+// ---------------------------------------------------------------------------
+// Linea de tiempo
+// ---------------------------------------------------------------------------
+const ACTORES = {
+  Ryu: 'var(--ryu)', Agente: 'var(--accent)', LLM: 'var(--llm)', DB: 'var(--db)',
+  Telegram: 'var(--tg)', Operador: 'var(--op)', Sistema: 'var(--muted)',
+};
+function registrar(actor, texto, datos, ts) {
+  const li = document.createElement('li');
+  const det = document.createElement('details');
+  const sum = document.createElement('summary');
+  const h = document.createElement('span'); h.className = 'hora'; h.textContent = hora(ts);
+  const a = document.createElement('span'); a.className = 'actor'; a.textContent = actor;
+  a.style.background = ACTORES[actor] || 'var(--muted)';
+  const t = document.createElement('span'); t.className = 'txt'; t.textContent = texto;
+  sum.append(h, a, t);
+  const pre = document.createElement('pre'); pre.textContent = JSON.stringify(datos, null, 2);
+  det.append(sum, pre); li.append(det);
+  $('#linea').prepend(li);
+  while ($('#linea').children.length > 200) $('#linea').lastChild.remove();
+}
+
+// ---------------------------------------------------------------------------
+// Mensaje de Telegram: solo se permiten <b> y <code>
+// ---------------------------------------------------------------------------
+function htmlTelegram(html) {
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
+  const salida = document.createDocumentFragment();
+  (function copiar(origen, destino) {
+    origen.childNodes.forEach((n) => {
+      if (n.nodeType === Node.TEXT_NODE) destino.append(n.textContent);
+      else if (n.nodeType === Node.ELEMENT_NODE) {
+        const tag = n.tagName.toLowerCase();
+        if (tag === 'b' || tag === 'code') { const el = document.createElement(tag); copiar(n, el); destino.append(el); }
+        else copiar(n, destino);
+      }
+    });
+  })(doc.body.firstChild, salida);
+  return salida;
+}
+
+// ---------------------------------------------------------------------------
+// Eventos del agente (WebSocket), animados en orden
+// ---------------------------------------------------------------------------
+const cola = [];
+let procesando = false;
+function encolar(ev) { cola.push(ev); if (!procesando) vaciarCola(); }
+async function vaciarCola() {
+  procesando = true;
+  while (cola.length) {
+    const ev = cola.shift();
+    try { await manejar(ev); } catch (e) { console.error(e); }
+  }
+  procesando = false;
+}
+
+const TXT_VEREDICTO = { confirmado: 'Ataque confirmado', falso_positivo: 'Probable falso positivo', indeterminado: 'Caso dudoso' };
+
+async function manejar(ev) {
+  const host = ev.host || ev.ip || '';
+  switch (ev.tipo) {
+    case 'estado_inicial':
+      $('#h-nivel').textContent = (ev.estado && ev.estado.nivel_alerta) || '—';
+      return;
+
+    case 'alerta_recibida': {
+      const al = ev.alerta || {};
+      reiniciarPasos(host);
+      $('#res-ryu').textContent = '…esperando respuesta';
+      registrar('Ryu', `Alerta de ${host}: señales ${(al.umbrales_superados || []).join(', ')} · puntaje ${ev.puntaje}`, ev, ev.ts);
+      subtitulo('equipo', host);
+      activarNodo('equipo', true);
+      paso(1, `${al.accion_ryu_previa || 'DROP instalado'} · señales: ${(al.umbrales_superados || []).join(', ')}`);
+      await viajar('equipo-ryu');
+      activarNodo('ryu', true); subtitulo('ryu', 'equipo bloqueado');
+      paso(2, `POST /alert · puntaje ${ev.puntaje}/${al.puntaje_maximo || 135}`);
+      await viajar('ryu-agente');
+      activarNodo('ryu', false); activarNodo('agente', true);
+      subtitulo('agente', 'alerta recibida');
+      return;
+    }
+
+    case 'procesando':
+      registrar('Agente', `Analizando ${host}: consulta lista blanca e historial y pregunta al LLM`, ev, ev.ts);
+      paso(3, 'Resumen de la alerta + lista blanca + alertas anteriores');
+      subtitulo('agente', 'consultando LLM…');
+      await viajar('agente-llm');
+      activarNodo('llm', true); subtitulo('llm', 'pensando…');
+      return;
+
+    case 'analisis_llm': {
+      const v = ev.veredicto || 'indeterminado';
+      registrar('LLM', `${TXT_VEREDICTO[v] || v} (${(ev.latencia_ms / 1000).toFixed(1)} s)` + (ev.error ? ` · error: ${ev.error}` : ''), ev, ev.ts);
+      subtitulo('llm', ev.modelo ? ev.modelo.split('/').pop().slice(0, 20) : 'OpenRouter');
+      await viajar('llm-agente');
+      activarNodo('llm', false);
+      paso(4, `${v} · ${(ev.latencia_ms / 1000).toFixed(1)} s` + (ev.error ? ` · ${ev.error}` : ''));
+      subtitulo('agente', v);
+      $('#res-vacio').hidden = true; $('#res').hidden = false;
+      const b = $('#res-badge'); b.textContent = TXT_VEREDICTO[v] || v; b.className = 'badge ' + v;
+      $('#res-host').textContent = host;
+      $('#res-lat').textContent = `· ${(ev.latencia_ms / 1000).toFixed(1)} s`;
+      $('#res-exp').textContent = ev.explicacion || '';
+      $('#res-tg').textContent = '…';
+      return;
+    }
+
+    case 'registrado_db':
+      registrar('DB', `Incidente de ${host} guardado`, ev, ev.ts);
+      paso(5, 'Tabla incidentes + equipos bloqueados');
+      await viajar('agente-db', 600);
+      activarNodo('db', true); setTimeout(() => activarNodo('db', false), 700);
+      return;
+
+    case 'telegram':
+      registrar('Telegram', ev.enviado ? `Aviso enviado al operador sobre ${host}` : `Aviso generado para ${host} (Telegram desactivado)`, ev, ev.ts);
+      paso(6, ev.enviado ? 'Enviado al chat del operador' : 'Telegram desactivado: el mensaje se muestra aquí');
+      subtitulo('tg', ev.enviado ? 'mensaje enviado' : 'desactivado');
+      await viajar('agente-tg', 700);
+      activarNodo('tg', true); setTimeout(() => activarNodo('tg', false), 900);
+      $('#res-tg').replaceChildren(htmlTelegram(ev.mensaje || ''));
+      return;
+
+    case 'incidente_procesado':
+      registrar('Agente', `Incidente de ${host} procesado: ${ev.veredicto}`, ev, ev.ts);
+      cargarTablas();
+      return;
+
+    case 'respuesta_ryu': {
+      const r = ev.respuesta || {};
+      registrar('Agente', `Respuesta a Ryu sobre ${host}: ${(r.acciones_ryu || []).join(', ')}` + (r.provisional ? ' (provisional, el análisis sigue)' : ''), ev, ev.ts);
+      paso(7, `${(r.acciones_ryu || []).join(', ')} · ${r.provisional ? 'provisional: el LLM no terminó a tiempo' : 'veredicto final a tiempo'}`);
+      await viajar('agente-ryu');
+      activarNodo('ryu', true); subtitulo('ryu', 'mantiene el bloqueo');
+      $('#res-ryu').textContent = JSON.stringify(r, null, 2);
+      await sleep(500);
+      ['equipo', 'ryu', 'agente'].forEach((n) => activarNodo(n, false));
+      pasoHecho(7);
+      subtitulo('agente', 'esperando alertas');
+      return;
+    }
+
+    case 'host_en_whitelist':
+    case 'host_desbloqueado':
+    case 'host_bloqueado': {
+      const txt = { host_en_whitelist: 'agrega a lista blanca', host_desbloqueado: 'desbloquea', host_bloqueado: 'bloquea' }[ev.tipo];
+      registrar('Operador', `El operador ${txt} ${host}`, ev, ev.ts);
+      activarNodo('op', true); subtitulo('op', txt);
+      await viajar('op-agente', 700);
+      activarNodo('op', false);
+      // Las tres acciones cambian una regla en Ryu (la lista blanca tambien desbloquea)
+      await viajar('agente-ryu', 700);
+      subtitulo('ryu', ev.tipo === 'host_bloqueado' ? 'regla DROP' : 'regla eliminada');
+      subtitulo('op', 'decide desbloqueos');
+      cargarTablas();
+      return;
+    }
+
+    case 'error':
+      registrar('Sistema', `Error procesando ${host}: ${ev.error}`, ev, ev.ts);
+      return;
+
+    default:
+      registrar('Sistema', ev.tipo || 'evento', ev, ev.ts);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// WebSocket con reconexion
+// ---------------------------------------------------------------------------
+function conectar() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}/ws/eventos`);
+  ws.onopen = () => { $('#ws-dot').classList.add('on'); $('#ws-txt').textContent = 'Conectado'; };
+  ws.onclose = () => {
+    $('#ws-dot').classList.remove('on'); $('#ws-txt').textContent = 'Reconectando…';
+    setTimeout(conectar, 2000);
+  };
+  ws.onmessage = (m) => { try { encolar(JSON.parse(m.data)); } catch (e) { console.error(e); } };
+}
+
+// ---------------------------------------------------------------------------
+// Datos del agente
+// ---------------------------------------------------------------------------
+async function cargarSalud() {
+  try {
+    const h = await pedir('GET', '/health');
+    $('#h-modelo').textContent = (h.modelo || '—').split('/').pop();
+    $('#h-tg').textContent = h.telegram ? 'activo' : 'desactivado';
+    subtitulo('tg', h.telegram ? 'notificación' : 'desactivado');
+  } catch (_) { /* el agente no responde todavia */ }
+}
+
+async function cargarTablas() {
+  try {
+    const [inc, est] = await Promise.all([pedir('GET', '/incidentes?limite=8'), pedir('GET', '/estado')]);
+    $('#h-nivel').textContent = (est.estado_red && est.estado_red.nivel_alerta) || '—';
+    const tb = $('#tabla-inc');
+    tb.replaceChildren();
+    if (!inc.length) {
+      const tr = document.createElement('tr'); const td = document.createElement('td');
+      td.colSpan = 4; td.className = 'vacio'; td.textContent = 'Sin incidentes'; tr.append(td); tb.append(tr);
+      return;
+    }
+    inc.forEach((i) => {
+      const tr = document.createElement('tr');
+      const c1 = document.createElement('td'); c1.textContent = hora(i.timestamp);
+      const c2 = document.createElement('td'); c2.textContent = i.host;
+      const c3 = document.createElement('td'); const b = document.createElement('span');
+      b.className = 'badge ' + i.veredicto; b.textContent = i.veredicto; c3.append(b);
+      const c4 = document.createElement('td'); c4.className = 'exp';
+      const exp = i.razonamiento || '';
+      c4.textContent = exp.length > 140 ? exp.slice(0, 140) + '…' : exp; c4.title = exp;
+      tr.append(c1, c2, c3, c4); tb.append(tr);
+    });
+  } catch (_) { /* se reintenta con el siguiente evento */ }
+}
+
+// ---------------------------------------------------------------------------
+// Botones
+// ---------------------------------------------------------------------------
+document.querySelectorAll('.preset').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const p = PRESETS[btn.dataset.preset];
+    const av = $('#sim-aviso');
+    document.querySelectorAll('.preset').forEach((b) => (b.disabled = true));
+    try {
+      if (p.whitelist) {
+        if (!$('#op-clave').value.trim()) {
+          aviso(av, 'Para la tarea legítima, escribe la X-API-Key en el panel del operador: hay que agregar el equipo a la lista blanca.', 'error');
+          return;
+        }
+        aviso(av, `Agregando ${p.host} a la lista blanca…`);
+        await pedir('POST', '/accion', { accion: 'whitelist', ip: p.host, razon: p.whitelist }, true);
+        await sleep(2500);   // deja ver la accion del operador antes de la alerta
+      }
+      aviso(av, `Alerta de ${p.host} enviada. Mira el diagrama.`);
+      const r = await pedir('POST', '/alert', construirAlerta(p));
+      aviso(av, `Ryu recibió: ${r.veredicto} · ${r.acciones_ryu.join(', ')}${r.provisional ? ' (provisional)' : ''}`, 'ok');
+    } catch (e) {
+      aviso(av, 'Error: ' + e.message, 'error');
+    } finally {
+      document.querySelectorAll('.preset').forEach((b) => (b.disabled = false));
+    }
+  });
+});
+
+async function accionOperador(cuerpo, texto) {
+  const av = $('#op-aviso');
+  const ip = $('#op-ip').value.trim();
+  if (!ip) { aviso(av, 'Escribe la IP del equipo.', 'error'); return; }
+  try {
+    await pedir('POST', '/accion', { ...cuerpo, ip }, true);
+    aviso(av, `${texto} ${ip}: aceptado.`, 'ok');
+  } catch (e) {
+    aviso(av, e.message.startsWith('401') ? 'Rechazado (401): la clave no es correcta.'
+             : e.message.startsWith('503') ? 'El agente no tiene AGENTE_API_KEY configurada (503).'
+             : 'Error: ' + e.message, 'error');
+  }
+}
+$('#op-wl').addEventListener('click', () => accionOperador({ accion: 'whitelist', razon: 'Agregado desde la demo' }, 'Lista blanca para'));
+$('#op-unblock').addEventListener('click', () => accionOperador({ accion: 'desbloquear_host' }, 'Desbloqueo de'));
+
+// La clave solo vive en esta pestana (sessionStorage), nunca se envia a otro sitio
+try { $('#op-clave').value = sessionStorage.getItem('sdn-clave') || ''; } catch (_) { /* sin storage */ }
+$('#op-clave').addEventListener('input', (e) => { try { sessionStorage.setItem('sdn-clave', e.target.value); } catch (_) { /* sin storage */ } });
+
+conectar();
+cargarSalud();
+cargarTablas();
+</script>
+</body>
+</html>

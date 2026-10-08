@@ -7,6 +7,7 @@ La logica de procesamiento vive en services/agente.py.
 
 import asyncio
 import logging
+from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -74,6 +75,7 @@ async def recibir_alerta(alerta: AlertaRyu):
         'host':    payload['host_origen'],
         'puntaje': payload['puntaje_total'],
         'ts':      payload['timestamp'],
+        'alerta':  payload,
     })
 
     tarea = asyncio.create_task(procesar_alerta(payload, ws_manager.emit_sync))
@@ -82,12 +84,23 @@ async def recibir_alerta(alerta: AlertaRyu):
 
     try:
         respuesta = await asyncio.wait_for(asyncio.shield(tarea), PLAZO_RESPUESTA_RYU_SEC)
+        para_ryu = respuesta_para_ryu(respuesta)
     except asyncio.TimeoutError:
         logger.info(f'[/alert] Plazo de {PLAZO_RESPUESTA_RYU_SEC}s agotado para '
                     f'{payload["host_origen"]} -- respuesta provisional')
-        return dict(RESPUESTA_PROVISIONAL_RYU)
+        para_ryu = dict(RESPUESTA_PROVISIONAL_RYU)
     except Exception:
         # procesar_alerta ya registro el error en el log
-        return dict(RESPUESTA_PROVISIONAL_RYU)
+        para_ryu = dict(RESPUESTA_PROVISIONAL_RYU)
 
-    return respuesta_para_ryu(respuesta)
+    await ws_manager.broadcast({
+        'tipo':      'respuesta_ryu',
+        'host':      payload['host_origen'],
+        'respuesta': para_ryu,
+        'ts':        _ahora(),
+    })
+    return para_ryu
+
+
+def _ahora() -> str:
+    return datetime.utcnow().isoformat() + 'Z'

@@ -19,7 +19,9 @@ Variables de entorno:
 """
 
 import logging
+from pathlib import Path
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import OPENAI_MODEL, RYU_REST_URL, TELEGRAM_ENABLED
@@ -97,6 +99,14 @@ def health():
         'ws_clientes':       ws_manager.num_clientes,
         'ts':                datetime.utcnow().isoformat() + 'Z',
     }
+
+
+# --- Demo -------------------------------------------------------------------
+
+@app.get('/demo', include_in_schema=False)
+def demo():
+    """Interfaz web que muestra en vivo la interaccion Ryu <-> agente."""
+    return FileResponse(Path(__file__).parent / 'frontend' / 'demo.html')
 
 
 # --- Entry point --------------------------------------------------------------

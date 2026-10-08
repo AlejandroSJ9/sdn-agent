@@ -15,10 +15,11 @@ Las capas individuales no se conocen entre sí.
 """
 
 import logging
+import time
 from datetime import datetime
 from typing import Callable
 
-from config import TELEGRAM_ENABLED
+from config import OPENAI_MODEL, TELEGRAM_ENABLED
 from services.analisis import analizar_incidente
 from db.repository import registrar_incidente
 import integrations.telegram as telegram
@@ -118,13 +119,32 @@ async def procesar_alerta(payload: dict, emit_fn: Callable | None = None) -> dic
     try:
         # Analizar con LLM (operación bloqueante — se ejecuta en un executor)
         loop = asyncio.get_event_loop()
+        inicio = time.monotonic()
         respuesta = await loop.run_in_executor(None, analizar_incidente, payload)
+        _emit({
+            'tipo':        'analisis_llm',
+            'host':        src_ip,
+            'modelo':      OPENAI_MODEL,
+            'veredicto':   respuesta.get('veredicto'),
+            'explicacion': respuesta.get('razonamiento'),
+            'error':       respuesta.get('error'),
+            'latencia_ms': round((time.monotonic() - inicio) * 1000),
+            'ts':          datetime.utcnow().isoformat() + 'Z',
+        })
 
         # Registrar en DB
         registrar_incidente(payload, respuesta)
+        _emit({'tipo': 'registrado_db', 'host': src_ip, 'ts': datetime.utcnow().isoformat() + 'Z'})
 
         # Solo notificar: el bloqueo de Ryu se mantiene
         telegram.enviar_texto(respuesta['mensaje_telegram'])
+        _emit({
+            'tipo':    'telegram',
+            'host':    src_ip,
+            'mensaje': respuesta['mensaje_telegram'],
+            'enviado': TELEGRAM_ENABLED,
+            'ts':      datetime.utcnow().isoformat() + 'Z',
+        })
 
         _emit({
             'tipo':      'incidente_procesado',

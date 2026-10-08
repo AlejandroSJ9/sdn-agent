@@ -54,6 +54,7 @@ uvicorn main:app --host 0.0.0.0 --port 8081 --reload
 ```
 
 El agente estara disponible en:
+- **Demo en vivo:** `http://localhost:8081/demo`
 - **API REST:** `http://localhost:8081`
 - **Documentacion:** `http://localhost:8081/docs`
 - **WebSocket:** `ws://localhost:8081/ws/eventos`
@@ -105,6 +106,7 @@ sdn-agent/
 | POST | `/accion` | Accion manual del operador |
 | POST | `/umbrales` | Actualizar umbrales de deteccion |
 | GET | `/health` | Estado del agente |
+| GET | `/demo` | Interfaz web: interaccion Ryu <-> agente en vivo |
 | WS | `/ws/eventos` | Eventos en tiempo real al dashboard |
 
 ---
