@@ -15,11 +15,11 @@ from services import llm
 from services.prompt import (
     get_system_prompt, construir_user_prompt, construir_mensaje_datos,
 )
+from services.pipeline import resolver_solicitud
 from db.repository import (
     get_historial_host, get_hosts_bloqueados, get_hosts_riesgo,
-    get_estado_red, esta_en_whitelist, get_whitelist,
+    get_estado_red, get_whitelist,
 )
-from integrations.ryu_rest import get_flujos, get_puertos
 
 logger = logging.getLogger('AgenteSDN.monolitico')
 
@@ -178,44 +178,6 @@ def _llamar_openai(messages: list[dict], turno: int) -> dict:
 
 
 # =============================================================================
-# Resolucion de solicitudes de datos
-# =============================================================================
-
-def _resolver_solicitud(solicitud: str, parametros: dict) -> dict:
-    if solicitud == 'historial_host':
-        ip = parametros.get('ip', '')
-        historial = get_historial_host(ip)
-        datos = {
-            'ip':                 ip,
-            'incidentes_previos': len(historial),
-            'primer_incidente':   len(historial) == 0,
-            'en_whitelist':       esta_en_whitelist(ip),
-            'historial':          historial,
-        }
-        logger.info(f'[LLM] Datos resueltos (historial_host): '
-                    f'{len(historial)} incidentes previos para {ip}')
-        return datos
-    elif solicitud == 'flujos_switch':
-        dpid = parametros.get('dpid', 1)
-        flujos = get_flujos(dpid)
-        n = len(flujos.get(str(dpid), []))
-        logger.info(f'[LLM] Datos resueltos (flujos_switch): {n} flujos en DPID={dpid}')
-        return {'dpid': dpid, 'flujos': flujos}
-    elif solicitud == 'estado_puertos':
-        dpid = parametros.get('dpid', 1)
-        return {'dpid': dpid, 'puertos': get_puertos(dpid)}
-    elif solicitud == 'hosts_bloqueados':
-        hosts = get_hosts_bloqueados()
-        logger.info(f'[LLM] Datos resueltos (hosts_bloqueados): {len(hosts)} hosts')
-        return {'hosts': hosts}
-    elif solicitud == 'hosts_riesgo':
-        hosts = get_hosts_riesgo()
-        logger.info(f'[LLM] Datos resueltos (hosts_riesgo): {len(hosts)} hosts')
-        return {'hosts': hosts}
-    return {'error': f'Solicitud desconocida: {solicitud}'}
-
-
-# =============================================================================
 # Loop bidireccional principal
 # =============================================================================
 
@@ -274,7 +236,7 @@ def analizar_incidente(payload: dict) -> dict:
         if estado_respuesta == 'necesito_datos':
             solicitud  = respuesta.get('solicitud', '')
             parametros = respuesta.get('parametros', {})
-            datos      = _resolver_solicitud(solicitud, parametros)
+            datos      = resolver_solicitud(solicitud, parametros)
             msg_datos  = construir_mensaje_datos(solicitud, datos)
             messages.append({'role': 'assistant', 'content': json.dumps(respuesta)})
             messages.append({'role': 'user',      'content': msg_datos})

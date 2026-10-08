@@ -25,6 +25,9 @@ VENTANA_PROPAGACION = timedelta(minutes=30)
 MAX_HISTORIAL       = 5
 
 
+# DEPRECATED: prompt unico del analizador monolitico (services/monolitico.py,
+# LLM_PIPELINE=monolitico). El analisis por defecto usa los prompts de
+# services/etapas/. Se conserva para comparar ambas versiones en la tesis.
 SYSTEM_PROMPT = """Eres un analista de seguridad de redes. Recibes alertas de una red de oficina
 y decides si cada alerta es un ataque de ransomware o no.
 
@@ -311,4 +314,5 @@ def construir_mensaje_datos(solicitud: str, datos: dict) -> str:
 
 
 def get_system_prompt() -> str:
+    """DEPRECATED: solo lo usa services/monolitico.py."""
     return SYSTEM_PROMPT
