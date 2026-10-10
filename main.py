@@ -19,9 +19,7 @@ Variables de entorno:
 """
 
 import logging
-from pathlib import Path
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import OPENAI_MODEL, RYU_REST_URL, TELEGRAM_ENABLED
@@ -29,6 +27,7 @@ from services.agente import iniciar_servicios
 from api.routes_alertas   import router as router_alertas
 from api.routes_dashboard import router as router_dashboard
 from api.routes_acciones  import router as router_acciones
+from api.routes_demo      import router as router_demo
 from api.websocket        import ws_endpoint
 
 logger = logging.getLogger('AgenteSDN')
@@ -64,6 +63,7 @@ app.add_middleware(
 app.include_router(router_alertas)
 app.include_router(router_dashboard)
 app.include_router(router_acciones)
+app.include_router(router_demo)
 app.add_api_websocket_route('/ws/eventos', ws_endpoint)
 
 # --- Lifecycle ----------------------------------------------------------------
@@ -99,14 +99,6 @@ def health():
         'ws_clientes':       ws_manager.num_clientes,
         'ts':                datetime.utcnow().isoformat() + 'Z',
     }
-
-
-# --- Demo -------------------------------------------------------------------
-
-@app.get('/demo', include_in_schema=False)
-def demo():
-    """Interfaz web que muestra en vivo la interaccion Ryu <-> agente."""
-    return FileResponse(Path(__file__).parent / 'frontend' / 'demo.html')
 
 
 # --- Entry point --------------------------------------------------------------

@@ -46,8 +46,32 @@
   .card h2 { font-size: 15px; margin: 0 0 12px; letter-spacing: .01em; }
   .card h2 small { color: var(--muted); font-weight: 400; margin-left: 6px; }
   .grid2 { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
-  .grid3 { display: grid; gap: 16px; grid-template-columns: 1.1fr 1fr 1.3fr; }
+  .grid3 { display: grid; gap: 16px; grid-template-columns: 1fr 1.6fr; }
+  .arriba { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.9fr) minmax(320px, 1fr); }
+  @media (max-width: 1100px) { .arriba { grid-template-columns: 1fr; } }
   @media (max-width: 1000px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+
+  /* Pruebas */
+  .pruebas-barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .pruebas-barra select { padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+  .pruebas-barra .total { margin-left: auto; font-size: 13px; color: var(--muted); }
+  #lista-pruebas { list-style: none; margin: 0; padding: 0; max-height: 470px; overflow-y: auto; }
+  #lista-pruebas li {
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center;
+    padding: 8px 6px; border-bottom: 1px solid var(--line); border-radius: 6px;
+  }
+  #lista-pruebas li.en-curso { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  #lista-pruebas .nom { font-weight: 600; font-size: 14px; }
+  #lista-pruebas .nom .cid { font-variant-numeric: tabular-nums; color: var(--muted); margin-right: 6px; }
+  #lista-pruebas .meta { grid-column: 1; font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  #lista-pruebas button.play { grid-row: 1 / span 2; grid-column: 2; padding: 6px 12px; }
+  .res-ok { color: var(--ok); font-weight: 650; } .res-mal { color: var(--bad); font-weight: 650; }
+  .res-curso { color: var(--accent); font-weight: 650; }
+  .clase { border-radius: 6px; padding: 0 6px; background: var(--chip); color: var(--ink); }
+  #esc { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; background: var(--bg); }
+  #esc .tit { font-weight: 650; }
+  #esc ul { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--muted); }
+  #esc .veredictos { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; }
 
   /* Diagrama */
   .lienzo { overflow-x: auto; }
@@ -148,8 +172,9 @@
 </header>
 
 <main>
+  <div class="arriba">
   <section class="card">
-    <h2>Interacción entre Ryu y el agente <small>se anima con cada alerta real o simulada</small></h2>
+    <h2>Interacción entre Ryu y el agente <small>se anima con cada alerta real o de prueba</small></h2>
     <div class="lienzo"><svg viewBox="0 0 930 410" role="img" aria-label="Diagrama de la interacción entre Ryu, el agente, el LLM, la base de datos, Telegram y el operador">
       <defs>
         <marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -207,6 +232,22 @@
     </svg></div>
   </section>
 
+  <section class="card">
+    <h2>Pruebas <small>escenarios de pruebas/escenarios.json</small></h2>
+    <div class="pruebas-barra">
+      <select id="filtro" aria-label="Conjunto de pruebas">
+        <option value="desarrollo">Desarrollo</option>
+        <option value="validacion">Validación</option>
+        <option value="todos">Todas</option>
+      </select>
+      <button id="todas">▶ Ejecutar todas</button>
+      <span class="total" id="pruebas-total"></span>
+    </div>
+    <ul id="lista-pruebas"><li class="vacio">Cargando pruebas…</li></ul>
+    <div class="aviso" id="sim-aviso">Cada prueba borra los incidentes, bloqueos y la lista blanca de la base de datos del agente. Necesita la X-API-Key (panel Operador).</div>
+  </section>
+  </div>
+
   <div class="grid2">
     <section class="card">
       <h2>Paso a paso <small id="pasos-host">—</small></h2>
@@ -223,7 +264,13 @@
 
     <section class="card">
       <h2>Último análisis</h2>
-      <div id="res-vacio" class="vacio">Todavía no hay análisis. Envía una alerta desde el simulador.</div>
+      <div id="esc" hidden>
+        <div class="tit" id="esc-tit"></div>
+        <div id="esc-desc" style="font-size:13.5px"></div>
+        <ul id="esc-ctx"></ul>
+        <div class="veredictos"><span>Esperado: <b id="esc-esp"></b></span><span id="esc-res"></span></div>
+      </div>
+      <div id="res-vacio" class="vacio">Todavía no hay análisis. Ejecuta una prueba.</div>
       <div id="res" hidden>
         <div><span class="badge" id="res-badge"></span> &nbsp;equipo <b id="res-host"></b> <span class="sub" id="res-lat" style="color:var(--muted)"></span></div>
         <div class="etiqueta">Explicación del LLM</div>
@@ -237,17 +284,6 @@
   </div>
 
   <div class="grid3">
-    <section class="card">
-      <h2>Simular a Ryu <small>envía una alerta al agente</small></h2>
-      <button class="preset" data-preset="ataque">🚨 Ataque de ransomware
-        <span>Copia por SMB (M3) y conexiones a 8 equipos (M5). Sin lista blanca.</span></button>
-      <button class="preset" data-preset="legitimo">✅ Tarea legítima
-        <span>Escaneo de vulnerabilidades. Agrega el equipo a la lista blanca (pide la clave) y envía la alerta.</span></button>
-      <button class="preset" data-preset="dudoso">⚠️ Caso dudoso
-        <span>Las mismas métricas del escaneo, pero sin lista blanca ni historial.</span></button>
-      <div class="aviso" id="sim-aviso"></div>
-    </section>
-
     <section class="card">
       <h2>Operador <small>acciones manuales</small></h2>
       <label for="op-clave">X-API-Key (AGENTE_API_KEY del .env)</label>
@@ -286,52 +322,6 @@ const hora = (ts) => {
   const d = ts ? new Date(ts) : new Date();
   return isNaN(d) ? '' : d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 };
-
-// ---------------------------------------------------------------------------
-// Alertas simuladas: se construyen igual que Ryu-IA (pruebas/test_escenarios.py)
-// ---------------------------------------------------------------------------
-const PESOS = { M5: 40, M3: 35, M1: 25, M2: 20, M4: 15 };
-const PRESETS = {
-  ataque:   { host: '10.0.10.3', M1: 24, M2: 9,  M3: true,  M4: 60,  M5: 8 },
-  legitimo: { host: '10.0.20.4', M1: 85, M2: 50, M3: false, M4: 610, M5: 34,
-              whitelist: 'Escaner de vulnerabilidades Tenable Nessus; escaneo autenticado semanal' },
-  dudoso:   { host: '10.0.10.4', M1: 85, M2: 50, M3: false, M4: 610, M5: 30 },
-};
-
-function construirAlerta(p) {
-  const disp = [];
-  if (p.M1 > 20) disp.push('M1');
-  if (p.M2 > 15) disp.push('M2');
-  if (p.M3) disp.push('M3');
-  if (p.M4 > 200) disp.push('M4');
-  if (p.M5 >= 5) disp.push('M5');
-  disp.sort();
-  const t = new Set(disp), ioc = [];
-  if (t.has('M1') && t.has('M2')) ioc.push('IOC-01');
-  if (t.has('M3')) ioc.push('IOC-02');
-  if (t.has('M4')) ioc.push('IOC-03');
-  if (t.has('M5')) ioc.push('IOC-04');
-  if (t.has('M5') && t.has('M1')) ioc.push('IOC-07');
-  if (t.size >= 3) ioc.push('IOC-05');
-  const adm = p.host.startsWith('10.0.20.');
-  return {
-    timestamp: new Date().toISOString(),
-    alerta_nivel: 'CRITICO',
-    host_origen: p.host,
-    dpid_switch: adm ? '0x0000000000000002' : '0x0000000000000001',
-    contexto_topologico: adm ? 'VLAN ADM (ID=20), subred 10.0.20.0/24' : 'VLAN OPS (ID=10), subred 10.0.10.0/24',
-    puntaje_total: disp.reduce((s, m) => s + PESOS[m], 0),
-    puntaje_maximo: 135,
-    metricas: {
-      M1_nuevos_flujos_por_30s: p.M1, M2_destinos_unicos_por_30s: p.M2, M3_smb_anomalo: p.M3,
-      M4_packet_in_por_min: p.M4, M5_flujos_east_west: disp.includes('M5'), M5_count: p.M5,
-    },
-    umbrales_superados: disp,
-    ioc_activados: ioc.sort(),
-    accion_ryu_previa: `OFPFlowMod DROP prioridad 100 — ${p.host} aislado`,
-    solicitud_al_agente: '',
-  };
-}
 
 // ---------------------------------------------------------------------------
 // HTTP
@@ -473,6 +463,11 @@ async function vaciarCola() {
 const TXT_VEREDICTO = { confirmado: 'Ataque confirmado', falso_positivo: 'Probable falso positivo', indeterminado: 'Caso dudoso' };
 
 async function manejar(ev) {
+  await manejarEvento(ev);
+  avanzarPrueba(ev);
+}
+
+async function manejarEvento(ev) {
   const host = ev.host || ev.ip || '';
   switch (ev.tipo) {
     case 'estado_inicial':
@@ -518,6 +513,7 @@ async function manejar(ev) {
       $('#res-lat').textContent = `· ${(ev.latencia_ms / 1000).toFixed(1)} s`;
       $('#res-exp').textContent = ev.explicacion || '';
       $('#res-tg').textContent = '…';
+      registrarResultado(ev);
       return;
     }
 
@@ -571,6 +567,10 @@ async function manejar(ev) {
       cargarTablas();
       return;
     }
+
+    case 'escenario_preparado':
+      registrar('Sistema', `Prueba ${ev.id}: contexto preparado (${resumenContexto(ev.contexto).join('; ')})`, ev, ev.ts);
+      return;
 
     case 'error':
       registrar('Sistema', `Error procesando ${host}: ${ev.error}`, ev, ev.ts);
@@ -633,34 +633,185 @@ async function cargarTablas() {
 }
 
 // ---------------------------------------------------------------------------
+// Pruebas (pruebas/escenarios.json)
+// ---------------------------------------------------------------------------
+let escenarios = [];
+const resultados = {};        // id -> { veredicto, acierto, critico, error }
+let corriendo = null;         // prueba en curso
+let ejecutandoTodas = false, detener = false;
+const CLASES_CRITICAS = new Set(['ataque', 'duplicado']);
+
+function haceTexto(min) {
+  if (min < 60) return `hace ${min} min`;
+  if (min < 48 * 60) return `hace ${Math.round(min / 60)} h`;
+  return `hace ${Math.round(min / 1440)} días`;
+}
+
+function resumenContexto(ctx) {
+  ctx = ctx || {};
+  const out = [];
+  (ctx.whitelist || []).forEach((w) => out.push(`lista blanca: ${w.ip} — "${w.razon}"`));
+  (ctx.incidentes_previos || []).forEach((i) =>
+    out.push(`alerta anterior de ${i.host}: ${i.veredicto} ${haceTexto(i.minutos_antes)}`));
+  (ctx.hosts_riesgo || []).forEach((r) =>
+    out.push(`${r.ip} señalado en riesgo por ${r.origen} ${haceTexto(r.minutos_antes)}`));
+  if (ctx.nivel_alerta) out.push(`nivel de alerta de la red: ${ctx.nivel_alerta}`);
+  if (!out.length) out.push('sin lista blanca, sin historial, red normal');
+  return out;
+}
+
+function esperadoTexto(c) {
+  const otros = c.esperado.aceptables.filter((v) => v !== c.esperado.veredicto);
+  return c.esperado.veredicto + (otros.length ? ` (también vale: ${otros.join(', ')})` : '');
+}
+
+function textoResultado(id) {
+  if (corriendo && corriendo.caso.id === id) return ['res-curso', 'en curso…'];
+  const r = resultados[id];
+  if (!r) return ['', 'sin ejecutar'];
+  if (r.error) return ['res-mal', `⚠ ${r.error}`];
+  if (r.acierto) return ['res-ok', `✓ ${r.veredicto}`];
+  return ['res-mal', `✗ ${r.veredicto}${r.critico ? ' · CRÍTICO' : ''}`];
+}
+
+function visibles() {
+  const f = $('#filtro').value;
+  return escenarios.filter((c) => f === 'todos' || c.conjunto === f);
+}
+
+function pintarPruebas() {
+  const ul = $('#lista-pruebas');
+  ul.replaceChildren();
+  visibles().forEach((c) => {
+    const li = document.createElement('li');
+    li.id = 'prueba-' + c.id;
+    if (corriendo && corriendo.caso.id === c.id) li.classList.add('en-curso');
+    const nom = document.createElement('div'); nom.className = 'nom';
+    const cid = document.createElement('span'); cid.className = 'cid'; cid.textContent = c.id;
+    nom.append(cid, c.nombre);
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const clase = document.createElement('span'); clase.className = 'clase'; clase.textContent = c.clase;
+    const esp = document.createElement('span'); esp.textContent = 'esperado: ' + c.esperado.veredicto;
+    const [cls, txt] = textoResultado(c.id);
+    const res = document.createElement('span'); res.className = cls; res.textContent = txt;
+    meta.append(clase, esp, res);
+    const btn = document.createElement('button'); btn.className = 'play'; btn.textContent = '▶';
+    btn.title = 'Ejecutar ' + c.id; btn.setAttribute('aria-label', 'Ejecutar ' + c.id);
+    btn.disabled = Boolean(corriendo);
+    btn.addEventListener('click', () => ejecutarPrueba(c));
+    li.append(nom, meta, btn);
+    ul.append(li);
+  });
+  const enCurso = ul.querySelector('.en-curso');
+  if (enCurso) ul.scrollTop = enCurso.offsetTop - ul.offsetTop - ul.clientHeight / 3;
+  const hechas = visibles().filter((c) => resultados[c.id] && !resultados[c.id].error);
+  const ok = hechas.filter((c) => resultados[c.id].acierto).length;
+  const crit = hechas.filter((c) => resultados[c.id].critico).length;
+  $('#pruebas-total').textContent = hechas.length
+    ? `Aciertos ${ok}/${hechas.length}` + (crit ? ` · ${crit} crítico(s)` : '')
+    : `${visibles().length} pruebas`;
+  $('#todas').textContent = ejecutandoTodas ? '■ Detener' : '▶ Ejecutar todas';
+  $('#todas').disabled = Boolean(corriendo) && !ejecutandoTodas;
+}
+
+function mostrarEscenario(c) {
+  $('#esc').hidden = false;
+  $('#esc-tit').textContent = `Prueba ${c.id} · ${c.nombre}`;
+  $('#esc-desc').textContent = c.escenario;
+  const ul = $('#esc-ctx'); ul.replaceChildren();
+  resumenContexto(c.contexto).forEach((t) => { const li = document.createElement('li'); li.textContent = t; ul.append(li); });
+  $('#esc-esp').textContent = esperadoTexto(c);
+  $('#esc-res').textContent = 'Obtenido: …'; $('#esc-res').className = 'res-curso';
+  $('#res').hidden = true;
+  $('#res-vacio').hidden = false;
+  $('#res-vacio').textContent = 'Esperando el análisis del agente…';
+}
+
+function registrarResultado(ev) {
+  if (!corriendo || ev.host !== corriendo.host) return;
+  const c = corriendo.caso, v = ev.veredicto;
+  const acierto = c.esperado.aceptables.includes(v);
+  resultados[c.id] = {
+    veredicto: v, acierto, error: ev.error ? 'error del LLM' : null,
+    critico: !acierto && v === 'falso_positivo' && CLASES_CRITICAS.has(c.clase),
+  };
+  const r = resultados[c.id];
+  $('#esc-res').className = r.error ? 'res-mal' : r.acierto ? 'res-ok' : 'res-mal';
+  $('#esc-res').textContent = r.error ? `Obtenido: ${v} (error del LLM: ${ev.error})`
+    : `Obtenido: ${v} ${r.acierto ? '✓ acierto' : '✗ fallo'}${r.critico ? ' · CRÍTICO: liberaría un equipo atacado' : ''}`;
+}
+
+function avanzarPrueba(ev) {
+  if (!corriendo || (ev.host || ev.ip) !== corriendo.host) return;
+  if (ev.tipo === 'respuesta_ryu') corriendo.respuesta = true;
+  if (ev.tipo === 'incidente_procesado') corriendo.procesado = true;
+  if (ev.tipo === 'error') { corriendo.respuesta = corriendo.procesado = true; }
+  if (corriendo.respuesta && corriendo.procesado) corriendo.fin();
+}
+
+async function ejecutarPrueba(c) {
+  const av = $('#sim-aviso');
+  if (corriendo) return false;
+  if (!$('#op-clave').value.trim()) {
+    aviso(av, 'Escribe la X-API-Key en el panel Operador: cada prueba prepara la base de datos del agente.', 'error');
+    $('#op-clave').focus();
+    return false;
+  }
+  corriendo = { caso: c, host: c.alerta.host, respuesta: false, procesado: false };
+  const fin = new Promise((r) => { corriendo.fin = r; });
+  mostrarEscenario(c);
+  pintarPruebas();
+  try {
+    aviso(av, `Prueba ${c.id}: preparando contexto…`);
+    const payload = await pedir('POST', `/demo/escenarios/${encodeURIComponent(c.id)}/preparar`, null, true);
+    corriendo.host = payload.host_origen;
+    aviso(av, `Prueba ${c.id}: alerta de ${payload.host_origen} enviada al agente.`);
+    await pedir('POST', '/alert', payload);
+    const listo = await Promise.race([fin.then(() => true), sleep(90000).then(() => false)]);
+    if (!listo) resultados[c.id] = { error: 'sin respuesta en 90 s' };
+    aviso(av, `Prueba ${c.id} terminada.`, resultados[c.id] && resultados[c.id].acierto ? 'ok' : 'error');
+    return true;
+  } catch (e) {
+    resultados[c.id] = { error: e.message.startsWith('401') ? 'clave incorrecta' : 'error' };
+    aviso(av, e.message.startsWith('401') ? 'Rechazado (401): la X-API-Key no es correcta.' : 'Error: ' + e.message, 'error');
+    return false;
+  } finally {
+    corriendo = null;
+    pintarPruebas();
+    cargarTablas();
+  }
+}
+
+async function ejecutarTodas() {
+  if (ejecutandoTodas) { detener = true; aviso($('#sim-aviso'), 'Se detendrá al terminar la prueba en curso.'); return; }
+  ejecutandoTodas = true; detener = false;
+  pintarPruebas();
+  for (const c of visibles()) {
+    if (detener) break;
+    const ok = await ejecutarPrueba(c);
+    if (!ok && !resultados[c.id]) break;      // sin clave: no seguir
+    await sleep(1500);                          // pausa para ver el resultado
+  }
+  ejecutandoTodas = false;
+  pintarPruebas();
+}
+
+async function cargarEscenarios() {
+  try {
+    escenarios = await pedir('GET', '/demo/escenarios');
+  } catch (e) {
+    $('#lista-pruebas').replaceChildren();
+    aviso($('#sim-aviso'), 'No se pudieron cargar las pruebas: ' + e.message, 'error');
+    return;
+  }
+  pintarPruebas();
+}
+$('#filtro').addEventListener('change', pintarPruebas);
+$('#todas').addEventListener('click', ejecutarTodas);
+
+// ---------------------------------------------------------------------------
 // Botones
 // ---------------------------------------------------------------------------
-document.querySelectorAll('.preset').forEach((btn) => {
-  btn.addEventListener('click', async () => {
-    const p = PRESETS[btn.dataset.preset];
-    const av = $('#sim-aviso');
-    document.querySelectorAll('.preset').forEach((b) => (b.disabled = true));
-    try {
-      if (p.whitelist) {
-        if (!$('#op-clave').value.trim()) {
-          aviso(av, 'Para la tarea legítima, escribe la X-API-Key en el panel del operador: hay que agregar el equipo a la lista blanca.', 'error');
-          return;
-        }
-        aviso(av, `Agregando ${p.host} a la lista blanca…`);
-        await pedir('POST', '/accion', { accion: 'whitelist', ip: p.host, razon: p.whitelist }, true);
-        await sleep(2500);   // deja ver la accion del operador antes de la alerta
-      }
-      aviso(av, `Alerta de ${p.host} enviada. Mira el diagrama.`);
-      const r = await pedir('POST', '/alert', construirAlerta(p));
-      aviso(av, `Ryu recibió: ${r.veredicto} · ${r.acciones_ryu.join(', ')}${r.provisional ? ' (provisional)' : ''}`, 'ok');
-    } catch (e) {
-      aviso(av, 'Error: ' + e.message, 'error');
-    } finally {
-      document.querySelectorAll('.preset').forEach((b) => (b.disabled = false));
-    }
-  });
-});
-
 async function accionOperador(cuerpo, texto) {
   const av = $('#op-aviso');
   const ip = $('#op-ip').value.trim();
@@ -684,6 +835,7 @@ $('#op-clave').addEventListener('input', (e) => { try { sessionStorage.setItem('
 conectar();
 cargarSalud();
 cargarTablas();
+cargarEscenarios();
 </script>
 </body>
 </html>

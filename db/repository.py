@@ -160,6 +160,44 @@ def get_historial_host(ip: str, limite: int = 10) -> list[dict]:
 
 
 # ===============================================================================
+# ESCENARIOS DE PRUEBA (interfaz /demo)
+# ===============================================================================
+
+def borrar_datos_de_red() -> None:
+    """Deja vacios incidentes, bloqueos, hosts en riesgo y whitelist."""
+    with get_connection() as conn:
+        for tabla in ('incidentes', 'hosts_bloqueados', 'hosts_riesgo', 'whitelist'):
+            conn.execute(f'DELETE FROM {tabla}')
+
+
+def sembrar_incidente(host: str, timestamp: str, puntaje: int, metricas: list,
+                      veredicto: str, confianza: int, dpid: str, bloqueado: bool) -> None:
+    """Incidente anterior de un escenario; si bloqueado, tambien queda en hosts_bloqueados."""
+    with get_connection() as conn:
+        conn.execute("""
+            INSERT INTO incidentes
+                (host, timestamp, puntaje, metricas, veredicto, confianza, nivel_auto, payload,
+                 razonamiento, error)
+            VALUES (?,?,?,?,?,?,?,?,?,NULL)
+        """, (host, timestamp, puntaje, json.dumps(metricas), veredicto, confianza, 2, '{}',
+              'Incidente sembrado por un escenario de prueba'))
+        if bloqueado:
+            conn.execute("""
+                INSERT OR REPLACE INTO hosts_bloqueados
+                    (ip, timestamp, puntaje, veredicto, confianza, dpid)
+                VALUES (?,?,?,?,?,?)
+            """, (host, timestamp, puntaje, veredicto, confianza, dpid))
+
+
+def sembrar_host_riesgo(ip: str, razon: str, timestamp: str, origen_ip: str) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            'INSERT OR REPLACE INTO hosts_riesgo (ip, razon, timestamp, origen_ip) VALUES (?,?,?,?)',
+            (ip, razon, timestamp, origen_ip),
+        )
+
+
+# ===============================================================================
 # HOSTS BLOQUEADOS
 # ===============================================================================
 
